@@ -22,6 +22,8 @@ from datetime import datetime
 import ollama
 from pydantic import BaseModel, Field
 
+from tabulate import tabulate
+
 
 class Message(BaseModel):
     """Represents a single message in the chat interaction."""
@@ -238,6 +240,56 @@ def average_stats(responses: List[OllamaResponse]) -> None:
     inference_stats(res)
 
 
+def table_stats(benchmarks: Dict[str, List[OllamaResponse]]) -> None:
+    """
+    Calculates and prints average statistics across multiple benchmark runs and models, output as table
+
+    Args:
+        benchmarks: Dict of modelNames and List of OllamaResponse objects from multiple runs
+    """
+    if not benchmarks:
+        print("No results to output")
+        return
+
+    print("Table stats:")
+    table: List[List] = []
+    for model_name, responses in benchmarks.items():
+        # Calculate aggregate metrics
+        total_duration = sum(r.total_duration for r in responses)
+        load_duration = sum(r.load_duration for r in responses)
+        prompt_eval_count = sum(r.prompt_eval_count for r in responses)
+        prompt_eval_duration = sum(r.prompt_eval_duration for r in responses)
+        eval_count = sum(r.eval_count for r in responses)
+        eval_duration = sum(r.eval_duration for r in responses)
+
+        # Calculate tokens per second for different phases
+        prompt_ts = prompt_eval_count / (
+            nanosec_to_sec(prompt_eval_duration)
+        )
+        response_ts = eval_count / (
+            nanosec_to_sec(eval_duration)
+        )
+        total_ts = (
+                           prompt_eval_count + eval_count
+                   ) / (
+                       nanosec_to_sec(
+                           prompt_eval_duration + eval_duration
+                       )
+                   )
+
+        # table.append([model_name, total_duration, load_duration, prompt_eval_duration, eval_count, eval_duration])
+        table.append([model_name, prompt_ts, response_ts, total_ts,
+                      nanosec_to_sec(load_duration),
+                      prompt_eval_count, nanosec_to_sec(prompt_eval_duration), eval_count,
+                      nanosec_to_sec(eval_duration), nanosec_to_sec(total_duration)])
+
+    print(tabulate(table, headers=["Model\nName", "Prompt\nEvaluation Rate\n(T/s)", "Evaluation\nRate\n(T/s)",
+                                   "Total\nRate\n(T/s)", "Load Time\n(s)",
+                                   "Prompt\nEvaluation Count", "Prompt\nEvaluation Time\n(s)",
+                                   "Evalutaion\nCount", "Evaluation\nTime\n(s)", "Total Time\n(s)"], tablefmt="orgtbl",
+                   floatfmt=".2f"))
+
+
 def get_benchmark_models(test_models: List[str] = []) -> List[str]:
     """
     Retrieves and validates the list of models to benchmark.
@@ -315,10 +367,17 @@ def main() -> None:
         ],
         help="Prompts to use for benchmarking. Multiple prompts can be specified. Default prompts test various capabilities including analysis, creativity, technical knowledge, and structured output.",
     )
+    parser.add_argument(
+        "-t",
+        "--table_output",
+        action="store_true",
+        help="Output as table instead of separate results per model",
+        default=False,
+    )
 
     args = parser.parse_args()
     print(
-        f"\nVerbose: {args.verbose}\nTest models: {args.models}\nPrompts: {args.prompts}"
+        f"\nVerbose: {args.verbose}\nTest models: {args.models}\nPrompts: {args.prompts}\nTable Output: {args.table_output}"
     )
 
     model_names = get_benchmark_models(args.models)
@@ -339,9 +398,12 @@ def main() -> None:
         
         benchmarks[model_name] = responses
 
-    # Calculate and display average statistics
-    for model_name, responses in benchmarks.items():
-        average_stats(responses)
+    if args.table_output:
+        table_stats(benchmarks)
+    else:
+        # Calculate and display average statistics
+        for model_name, responses in benchmarks.items():
+            average_stats(responses)
 
 
 if __name__ == "__main__":
