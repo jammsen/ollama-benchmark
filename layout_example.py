@@ -46,7 +46,20 @@ def simulate_streaming_with_stats():
     # Mock data
     model_name = "qwen3:4b"
     prompt = "Hello there! How can I help you today?"
-    response_text = "Hello there! 👋 How can I help you today? I'm here to assist you with any questions or tasks you might have."
+    # Much longer response for 15 second demo
+    response_text = """Hello there! 👋 How can I help you today? I'm here to assist you with any questions or tasks you might have. 
+    
+Whether you need help with coding problems, want to discuss various topics, need advice on a project, or just want to have a conversation, I'm ready to help! 
+
+I can assist with a wide range of tasks including:
+- Answering questions and providing explanations
+- Helping with programming and debugging code
+- Offering advice and recommendations
+- Discussing various topics from science to philosophy
+- Assisting with creative writing and brainstorming
+- And much more!
+
+Feel free to ask me anything, and I'll do my best to provide helpful and accurate information. What would you like to talk about or work on today?"""
     
     # Mock statistics (these would update in real benchmark)
     stats_data = {
@@ -55,11 +68,11 @@ def simulate_streaming_with_stats():
         "generation_speed": 93.51,
         "combined_speed": 96.75,
         "input_tokens": 12,
-        "generated_tokens": 312,
+        "generated_tokens": 0,
         "load_time": 0.07,
         "processing_time": 0.01,
-        "generation_time": 3.34,
-        "total_time": 3.50
+        "generation_time": 0.0,
+        "total_time": 0.0
     }
     
     # Create layout
@@ -72,7 +85,7 @@ def simulate_streaming_with_stats():
     # Initialize response text collector
     streamed_text = Text()
     
-    with Live(layout, console=console, refresh_per_second=4, screen=False) as live:
+    with Live(layout, console=console, refresh_per_second=10, screen=True) as live:
         # Show initial state
         layout["output"].update(Panel(
             Text(f"Benchmarking: {model_name}\nPrompt: {prompt}\n\nResponse:\n", style="bold blue"),
@@ -85,10 +98,12 @@ def simulate_streaming_with_stats():
             border_style="cyan"
         ))
         
-        time.sleep(0.5)
+        time.sleep(1.0)
         
         # Simulate streaming response word by word
         words = response_text.split()
+        total_words = len(words)
+        
         for i, word in enumerate(words):
             streamed_text.append(word + " ")
             
@@ -102,11 +117,14 @@ def simulate_streaming_with_stats():
                 border_style="blue"
             ))
             
-            # Simulate some stats updating (in real scenario, these would be real-time)
-            if i % 5 == 0 and i > 0:
-                stats_data["generated_tokens"] = i * 2
-                stats_data["generation_time"] = i * 0.1
+            # Update stats every 3 words for more realistic updates
+            if i % 3 == 0 and i > 0:
+                elapsed_time = (i / total_words) * 15.0  # Simulate 15 seconds total
+                stats_data["generated_tokens"] = i
+                stats_data["generation_time"] = elapsed_time
+                stats_data["total_time"] = 0.08 + elapsed_time
                 stats_data["generation_speed"] = stats_data["generated_tokens"] / stats_data["generation_time"] if stats_data["generation_time"] > 0 else 0
+                stats_data["combined_speed"] = (stats_data["input_tokens"] + stats_data["generated_tokens"]) / (stats_data["processing_time"] + stats_data["generation_time"]) if (stats_data["processing_time"] + stats_data["generation_time"]) > 0 else 0
                 
                 layout["stats"].update(Panel(
                     create_stats_table(**stats_data),
@@ -114,10 +132,23 @@ def simulate_streaming_with_stats():
                     border_style="cyan"
                 ))
             
-            time.sleep(0.1)  # Simulate streaming delay
+            # Slow down to make it ~15 seconds total
+            time.sleep(15.0 / total_words)
         
         # Final update with complete stats
-        time.sleep(0.5)
+        stats_data["generated_tokens"] = total_words
+        stats_data["generation_time"] = 15.0
+        stats_data["total_time"] = 15.08
+        stats_data["generation_speed"] = stats_data["generated_tokens"] / stats_data["generation_time"]
+        stats_data["combined_speed"] = (stats_data["input_tokens"] + stats_data["generated_tokens"]) / (stats_data["processing_time"] + stats_data["generation_time"])
+        
+        layout["stats"].update(Panel(
+            create_stats_table(**stats_data),
+            title="[bold cyan]Statistics (Final)[/bold cyan]",
+            border_style="green"
+        ))
+        
+        time.sleep(3.0)  # Hold final view for 3 seconds
         console.print("\n[bold green]✓ Benchmark complete![/bold green]\n")
 
 
