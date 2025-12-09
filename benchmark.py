@@ -658,15 +658,14 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
     """
     console = Console()
     benchmarks: Dict[str, List[List[OllamaResponse]]] = {}
+    status_messages: List[str] = []  # Collect status messages for display
     
     for model_name in model_names:
         all_runs: List[List[OllamaResponse]] = []
         
         for run_number in range(args.runs):
             if args.runs > 1:
-                console.print(f"\n[bold cyan]{'='*60}[/bold cyan]")
-                console.print(f"[bold cyan]Run {run_number + 1}/{args.runs} for model: {model_name}[/bold cyan]")
-                console.print(f"[bold cyan]{'='*60}[/bold cyan]\n")
+                status_messages.append(f"Run {run_number + 1}/{args.runs} for model: {model_name}")
             
             responses: List[OllamaResponse] = []
             
@@ -678,10 +677,11 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                     Layout(name="right_panel", ratio=1)
                 )
                 
-                # Split right panel vertically 50/50
+                # Split right panel vertically into 3 equal parts (33% each)
                 layout["right_panel"].split_column(
-                    Layout(name="stats"),
-                    Layout(name="ollama_ps")
+                    Layout(name="stats", ratio=1),
+                    Layout(name="ollama_ps", ratio=1),
+                    Layout(name="status", ratio=1)
                 )
                 
                 # Initialize stats data
@@ -742,6 +742,11 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                     layout["ollama_ps"].update(Panel(
                         create_ollama_ps_table(),
                         title="[bold cyan]Ollama PS[/bold cyan]",
+                        border_style="cyan"
+                    ))
+                    layout["status"].update(Panel(
+                        "\n".join(status_messages[-20:]) if status_messages else "Waiting for status updates...",
+                        title="[bold cyan]Status[/bold cyan]",
                         border_style="cyan"
                     ))
                     
@@ -837,6 +842,11 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                                         title="[bold cyan]Ollama PS[/bold cyan]",
                                         border_style="cyan"
                                     ))
+                                    layout["status"].update(Panel(
+                                        "\n".join(status_messages[-20:]) if status_messages else "No status updates",
+                                        title="[bold cyan]Status[/bold cyan]",
+                                        border_style="cyan"
+                                    ))
                         
                         if not content.strip():
                             console.print(f"\n[bold red]Error: Ollama model {model_name} returned empty response.[/bold red]")
@@ -889,6 +899,11 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                             title="[bold cyan]Ollama PS[/bold cyan]",
                             border_style="cyan"
                         ))
+                        layout["status"].update(Panel(
+                            "\n".join(status_messages[-20:]) if status_messages else "No status updates",
+                            title="[bold cyan]Status[/bold cyan]",
+                            border_style="cyan"
+                        ))
                         
                         time.sleep(2.0)  # Hold final view
                         
@@ -908,11 +923,11 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
             
             if should_unload:
                 try:
-                    console.print(f"\n[yellow]Unloading {model_name} from memory...[/yellow]")
+                    status_messages.append(f"Unloading {model_name} from memory...")
                     ollama_client.generate(model=model_name, prompt="", keep_alive=0)
-                    console.print(f"[green]✓ {model_name} unloaded[/green]")
+                    status_messages.append(f"✓ {model_name} unloaded")
                 except Exception as e:
-                    console.print(f"[yellow]Note: Could not unload model: {e}[/yellow]")
+                    status_messages.append(f"Note: Could not unload model: {e}")
         
         benchmarks[model_name] = all_runs
     
