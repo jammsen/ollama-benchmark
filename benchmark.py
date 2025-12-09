@@ -544,6 +544,51 @@ def create_stats_table(model_name: str, prompt_processing: float, generation_spe
     return table
 
 
+def create_ollama_ps_table() -> Table:
+    """
+    Creates a Rich Table showing currently running Ollama models (ollama ps).
+    
+    Returns:
+        Rich Table object with running models information
+    """
+    table = Table(show_header=True, box=None, padding=(0, 1), title="[bold]Running Models[/bold]")
+    table.add_column("Model", style="cyan", no_wrap=True)
+    table.add_column("Size", style="yellow", justify="right")
+    table.add_column("Processor", style="green")
+    
+    try:
+        ps_info = ollama_client.ps()
+        if ps_info and 'models' in ps_info:
+            models = ps_info['models']
+            if models:
+                for model_info in models:
+                    model_name = model_info.get('name', 'unknown')
+                    size = model_info.get('size', 0)
+                    # Convert size to GB
+                    size_gb = size / (1024**3) if size > 0 else 0
+                    
+                    # Get processor info (try different possible keys)
+                    processor = "Unknown"
+                    if 'details' in model_info:
+                        details = model_info['details']
+                        if 'parameter_size' in details:
+                            processor = details.get('parameter_size', 'Unknown')
+                    
+                    table.add_row(
+                        model_name,
+                        f"{size_gb:.2f} GB",
+                        processor
+                    )
+            else:
+                table.add_row("[dim]No models loaded[/dim]", "", "")
+        else:
+            table.add_row("[dim]No models loaded[/dim]", "", "")
+    except Exception as e:
+        table.add_row(f"[red]Error: {str(e)}[/red]", "", "")
+    
+    return table
+
+
 def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, List[List[OllamaResponse]]]:
     """
     Executes benchmarks with Rich library side-by-side layout display.
@@ -575,7 +620,13 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                 layout = Layout()
                 layout.split_row(
                     Layout(name="output", ratio=2),
-                    Layout(name="stats", ratio=1)
+                    Layout(name="right_panel", ratio=1)
+                )
+                
+                # Split right panel vertically 50/50
+                layout["right_panel"].split_column(
+                    Layout(name="stats"),
+                    Layout(name="ollama_ps")
                 )
                 
                 # Initialize stats data
@@ -608,6 +659,11 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         create_stats_table(**stats_data),
                         title="[bold cyan]Statistics[/bold cyan]",
                         border_style="cyan"
+                    ))
+                    layout["ollama_ps"].update(Panel(
+                        create_ollama_ps_table(),
+                        title="[bold cyan]Ollama PS[/bold cyan]",
+                        border_style="yellow"
                     ))
                     
                     time.sleep(0.3)
@@ -662,6 +718,11 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                                         title="[bold cyan]Statistics[/bold cyan]",
                                         border_style="cyan"
                                     ))
+                                    layout["ollama_ps"].update(Panel(
+                                        create_ollama_ps_table(),
+                                        title="[bold cyan]Ollama PS[/bold cyan]",
+                                        border_style="yellow"
+                                    ))
                         
                         if not content.strip():
                             console.print(f"\n[bold red]Error: Ollama model {model_name} returned empty response.[/bold red]")
@@ -707,6 +768,11 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                             create_stats_table(**stats_data),
                             title="[bold green]Statistics (Final)[/bold green]",
                             border_style="green"
+                        ))
+                        layout["ollama_ps"].update(Panel(
+                            create_ollama_ps_table(),
+                            title="[bold cyan]Ollama PS[/bold cyan]",
+                            border_style="yellow"
                         ))
                         
                         time.sleep(2.0)  # Hold final view
