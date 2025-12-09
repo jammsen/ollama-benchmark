@@ -767,20 +767,22 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         options['num_gpu'] = args.num_gpu
                     
                     try:
-                        # Add status message for loading
-                        status_messages.append(f"Loading model {model_name}...")
-                        layout["status"].update(Panel(
-                            "\n".join(status_messages[-20:]) if status_messages else "No status updates",
-                            title="[bold cyan]Status[/bold cyan]",
-                            border_style="cyan"
-                        ))
+                        # Only show loading message for the first prompt (model actually loads then)
+                        if prompt_idx == 0:
+                            status_messages.append(f"Loading model {model_name}...")
+                            layout["status"].update(Panel(
+                                "\n".join(status_messages[-20:]) if status_messages else "No status updates",
+                                title="[bold cyan]Status[/bold cyan]",
+                                border_style="cyan"
+                            ))
                         
                         # Stream the response
                         messages = [{"role": "user", "content": prompt}]
                         content = ""
                         final_chunk = None
                         
-                        status_messages.append("✓ Model loaded")
+                        if prompt_idx == 0:
+                            status_messages.append("✓ Model loaded")
                         status_messages.append("Starting chat stream...")
                         layout["status"].update(Panel(
                             "\n".join(status_messages[-20:]) if status_messages else "No status updates",
