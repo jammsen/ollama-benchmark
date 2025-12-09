@@ -1,3 +1,4 @@
 pydantic
 ollama
 tabulate
+rich

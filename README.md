@@ -108,14 +108,47 @@ Follow these instructions to set up and run benchmarks on your system.
 
 ### Command Line Options
 
-- `-v, --verbose`: Enable detailed output including streaming responses
+- `-v, --verbose`: Enable detailed output including streaming responses (only works with `-l plain`)
 - `-m, --models`: Space-separated list of models to benchmark (defaults to all available models)
 - `-p, --prompts`: Space-separated list of custom prompts (defaults to a predefined set testing various capabilities)
 - `-t, --table`: Results printed into a table output
 - `-r, --runs`: Number of times to run each benchmark (default: 3). Results show individual runs and averages
 - `-k, --keep-model-loaded BOOL`: Keep models loaded in memory between runs (default: True). Set to False to unload after each run
 - `-H, --host`: Ollama host URL (default: http://localhost:11434)
+- `-l, --layout`: Display layout style - `rich` for side-by-side streaming output with live stats (default), `plain` for classic output
 - `--num-gpu`: Number of model layers to offload to GPU (useful for large models that don't fit entirely in VRAM)
+
+#### Display Layouts
+
+The tool supports two display layouts:
+
+**Rich Layout (Default)**
+- Side-by-side display with streaming output on the left and live statistics on the right
+- Real-time token generation visualization
+- No additional flags needed - automatically shows detailed statistics
+- Modern, interactive interface
+
+```bash
+# Uses rich layout by default
+python benchmark.py --models llama3.2:1b
+
+# Explicitly specify rich layout
+python benchmark.py --models llama3.2:1b -l rich
+```
+
+**Plain Layout**
+- Classic text-based output
+- Controlled by `--verbose` flag for detailed output
+- Better for automation, CI/CD, or simple terminals
+- Compatible with existing scripts
+
+```bash
+# Plain layout with verbose output
+python benchmark.py --models llama3.2:1b -l plain --verbose
+
+# Plain layout without verbose (minimal output)
+python benchmark.py --models llama3.2:1b -l plain
+```
 
 #### Multiple Runs and Averaging
 

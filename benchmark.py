@@ -19,11 +19,18 @@ import argparse
 from typing import List, Dict, Optional
 from datetime import datetime
 import os
+import time
 
 import ollama
 from pydantic import BaseModel, Field
 
 from tabulate import tabulate
+from rich.console import Console
+from rich.live import Live
+from rich.layout import Layout
+from rich.panel import Panel
+from rich.table import Table
+from rich.text import Text
 
 # Ollama client will be initialized after parsing arguments
 ollama_client = None
@@ -436,7 +443,7 @@ def get_benchmark_models(test_models: List[str] = []) -> List[str]:
                             digest = progress.get('digest', '')
                             if digest and digest != current_digest:
                                 current_digest = digest
-                                print(f"\n{status}: {digest[:12]}...")
+                                print(f"\\n{status}: {digest[:12]}...")
                             
                             # Show download progress
                             if 'completed' in progress and 'total' in progress:
@@ -445,12 +452,12 @@ def get_benchmark_models(test_models: List[str] = []) -> List[str]:
                                 percentage = (completed / total * 100) if total > 0 else 0
                                 completed_mb = completed / (1024 * 1024)
                                 total_mb = total / (1024 * 1024)
-                                print(f"\r{status}: {completed_mb:.1f}/{total_mb:.1f} MB ({percentage:.1f}%)", end="", flush=True)
+                                print(f"\\r{status}: {completed_mb:.1f}/{total_mb:.1f} MB ({percentage:.1f}%)", end="", flush=True)
                             elif status and not digest:
                                 # For status messages without progress bars
-                                print(f"\r{status}", end="", flush=True)
+                                print(f"\\r{status}", end="", flush=True)
                     
-                    print(f"\n✓ Successfully pulled {model}")
+                    print(f"\\n✓ Successfully pulled {model}")
                     model_names.append(model)
                 except Exception as e:
                     print(f"Failed to pull {model}: {str(e)}")
@@ -458,8 +465,291 @@ def get_benchmark_models(test_models: List[str] = []) -> List[str]:
     if not model_names:
         raise RuntimeError("No valid models found for benchmarking")
 
-    print(f"Evaluating models: {model_names}\n")
+    print(f"Evaluating models: {model_names}\\n")
     return model_names
+
+
+def create_stats_table(model_name: str, prompt_processing: float, generation_speed: float,
+                      combined_speed: float, input_tokens: int, generated_tokens: int,
+                      load_time: float, processing_time: float, generation_time: float,
+                      total_time: float) -> Table:
+    """
+    Creates a Rich Table for displaying statistics.
+    
+    Args:
+        model_name: Name of the model
+        prompt_processing: Prompt processing speed in tokens/sec
+        generation_speed: Generation speed in tokens/sec
+        combined_speed: Combined speed in tokens/sec
+        input_tokens: Number of input tokens
+        generated_tokens: Number of generated tokens
+        load_time: Model load time in seconds
+        processing_time: Processing time in seconds
+        generation_time: Generation time in seconds
+        total_time: Total time in seconds
+        
+    Returns:
+        Rich Table object with statistics
+    """
+    table = Table(show_header=False, box=None, padding=(0, 1))
+    table.add_column("Metric", style="cyan", no_wrap=True)
+    table.add_column("Value", style="white")
+    
+    table.add_row("[bold]Model[/bold]", model_name)
+    table.add_row("", "")
+    table.add_row("[bold]Performance Metrics[/bold]", "")
+    table.add_row("  Prompt Processing", f"{prompt_processing:.2f} tokens/sec")
+    table.add_row("  Generation Speed", f"{generation_speed:.2f} tokens/sec")
+    table.add_row("  Combined Speed", f"{combined_speed:.2f} tokens/sec")
+    table.add_row("", "")
+    table.add_row("[bold]Workload Stats[/bold]", "")
+    table.add_row("  Input Tokens", str(input_tokens))
+    table.add_row("  Generated Tokens", str(generated_tokens))
+    table.add_row("  Model Load Time", f"{load_time:.2f}s")
+    table.add_row("  Processing Time", f"{processing_time:.2f}s")
+    table.add_row("  Generation Time", f"{generation_time:.2f}s")
+    table.add_row("  Total Time", f"{total_time:.2f}s")
+    
+    return table
+
+
+def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, List[List[OllamaResponse]]]:
+    """
+    Executes benchmarks with Rich library side-by-side layout display.
+    Shows streaming output on the left and live statistics on the right.
+    
+    Args:
+        model_names: List of model names to benchmark
+        args: Parsed command line arguments
+        
+    Returns:
+        Dictionary mapping model names to lists of benchmark runs
+    """
+    console = Console()
+    benchmarks: Dict[str, List[List[OllamaResponse]]] = {}
+    
+    for model_name in model_names:
+        all_runs: List[List[OllamaResponse]] = []
+        
+        for run_number in range(args.runs):
+            if args.runs > 1:
+                console.print(f\"\\n[bold cyan]{'='*60}[/bold cyan]\")
+                console.print(f\"[bold cyan]Run {run_number + 1}/{args.runs} for model: {model_name}[/bold cyan]\")
+                console.print(f\"[bold cyan]{'='*60}[/bold cyan]\\n\")
+            
+            responses: List[OllamaResponse] = []
+            
+            for prompt_idx, prompt in enumerate(args.prompts):
+                # Create layout for side-by-side display
+                layout = Layout()
+                layout.split_row(
+                    Layout(name=\"output\", ratio=2),
+                    Layout(name=\"stats\", ratio=1)
+                )
+                
+                # Initialize stats data
+                stats_data = {
+                    \"model_name\": model_name,
+                    \"prompt_processing\": 0.0,
+                    \"generation_speed\": 0.0,
+                    \"combined_speed\": 0.0,
+                    \"input_tokens\": 0,
+                    \"generated_tokens\": 0,
+                    \"load_time\": 0.0,
+                    \"processing_time\": 0.0,
+                    \"generation_time\": 0.0,
+                    \"total_time\": 0.0
+                }
+                
+                # Initialize response text collector
+                streamed_text = Text()
+                
+                with Live(layout, console=console, refresh_per_second=10, screen=True) as live:
+                    # Show initial state
+                    layout[\"output\"].update(Panel(
+                        Text(f\"Benchmarking: {model_name}\\nPrompt {prompt_idx + 1}/{len(args.prompts)}: {prompt}\\n\\nResponse:\\n\", style=\"bold blue\"),
+                        title=\"[bold cyan]Streaming Output[/bold cyan]\",
+                        border_style=\"blue\"
+                    ))
+                    layout[\"stats\"].update(Panel(
+                        create_stats_table(**stats_data),
+                        title=\"[bold cyan]Statistics[/bold cyan]\",
+                        border_style=\"cyan\"
+                    ))
+                    
+                    time.sleep(0.3)
+                    
+                    # Build options dict for GPU offloading if specified
+                    options = {}
+                    if args.num_gpu is not None:
+                        options['num_gpu'] = args.num_gpu
+                    
+                    try:
+                        # Stream the response
+                        messages = [{\"role\": \"user\", \"content\": prompt}]
+                        content = \"\"
+                        stream = ollama_client.chat(
+                            model=model_name,
+                            messages=messages,
+                            stream=True,
+                            options=options if options else None,
+                        )
+                        
+                        word_count = 0
+                        for chunk in stream:
+                            if hasattr(chunk.message, 'content'):
+                                chunk_content = chunk.message.content
+                                content += chunk_content
+                                streamed_text.append(chunk_content)
+                                
+                                # Update output panel
+                                output_content = Text(f\"Benchmarking: {model_name}\\nPrompt {prompt_idx + 1}/{len(args.prompts)}: {prompt}\\n\\nResponse:\\n\", style=\"bold blue\")
+                                output_content.append(streamed_text)
+                                
+                                layout[\"output\"].update(Panel(
+                                    output_content,
+                                    title=\"[bold cyan]Streaming Output[/bold cyan]\",
+                                    border_style=\"blue\"
+                                ))
+                                
+                                # Update stats periodically (every 10 words)
+                                word_count += len(chunk_content.split())
+                                if word_count % 10 == 0:
+                                    stats_data[\"generated_tokens\"] = word_count
+                                    layout[\"stats\"].update(Panel(
+                                        create_stats_table(**stats_data),
+                                        title=\"[bold cyan]Statistics[/bold cyan]\",
+                                        border_style=\"cyan\"
+                                    ))
+                        
+                        if not content.strip():
+                            console.print(f\"\\n[bold red]Error: Ollama model {model_name} returned empty response.[/bold red]\")
+                            continue
+                        
+                        # Make a non-streaming call to get final metrics
+                        response = ollama_client.chat(
+                            model=model_name,
+                            messages=messages,
+                            options=options if options else None,
+                        )
+                        
+                        # Create response object
+                        benchmark_response = OllamaResponse(
+                            model=model_name,
+                            message=Message(
+                                role=\"assistant\",
+                                content=content
+                            ),
+                            done=True,
+                            total_duration=getattr(response, 'total_duration', 0),
+                            load_duration=getattr(response, 'load_duration', 0),
+                            prompt_eval_count=getattr(response, 'prompt_eval_count', 0),
+                            prompt_eval_duration=getattr(response, 'prompt_eval_duration', 0),
+                            eval_count=getattr(response, 'eval_count', 0),
+                            eval_duration=getattr(response, 'eval_duration', 0)
+                        )
+                        
+                        responses.append(benchmark_response)
+                        
+                        # Update final stats
+                        stats_data[\"prompt_processing\"] = benchmark_response.prompt_eval_count / nanosec_to_sec(benchmark_response.prompt_eval_duration) if benchmark_response.prompt_eval_duration > 0 else 0
+                        stats_data[\"generation_speed\"] = benchmark_response.eval_count / nanosec_to_sec(benchmark_response.eval_duration) if benchmark_response.eval_duration > 0 else 0
+                        stats_data[\"combined_speed\"] = (benchmark_response.prompt_eval_count + benchmark_response.eval_count) / nanosec_to_sec(benchmark_response.prompt_eval_duration + benchmark_response.eval_duration) if (benchmark_response.prompt_eval_duration + benchmark_response.eval_duration) > 0 else 0
+                        stats_data[\"input_tokens\"] = benchmark_response.prompt_eval_count
+                        stats_data[\"generated_tokens\"] = benchmark_response.eval_count
+                        stats_data[\"load_time\"] = nanosec_to_sec(benchmark_response.load_duration)
+                        stats_data[\"processing_time\"] = nanosec_to_sec(benchmark_response.prompt_eval_duration)
+                        stats_data[\"generation_time\"] = nanosec_to_sec(benchmark_response.eval_duration)
+                        stats_data[\"total_time\"] = nanosec_to_sec(benchmark_response.total_duration)
+                        
+                        layout[\"stats\"].update(Panel(
+                            create_stats_table(**stats_data),
+                            title=\"[bold green]Statistics (Final)[/bold green]\",
+                            border_style=\"green\"
+                        ))
+                        
+                        time.sleep(2.0)  # Hold final view
+                        
+                    except Exception as e:
+                        console.print(f\"\\n[bold red]Error benchmarking {model_name}: {str(e)}[/bold red]\")
+                        continue
+            
+            all_runs.append(responses)
+            
+            # Unload model from memory based on keep_model_loaded setting
+            should_unload = False
+            
+            if not args.keep_model_loaded:
+                should_unload = run_number < args.runs - 1 or model_names.index(model_name) < len(model_names) - 1
+            elif model_names.index(model_name) < len(model_names) - 1 and run_number == args.runs - 1:
+                should_unload = True
+            
+            if should_unload:
+                try:
+                    console.print(f\"\\n[yellow]Unloading {model_name} from memory...[/yellow]\")
+                    ollama_client.generate(model=model_name, prompt=\"\", keep_alive=0)
+                    console.print(f\"[green]✓ {model_name} unloaded[/green]\")
+                except Exception as e:
+                    console.print(f\"[yellow]Note: Could not unload model: {e}[/yellow]\")
+        
+        benchmarks[model_name] = all_runs
+    
+    return benchmarks
+
+
+def run_benchmark_plain(model_names: List[str], args) -> Dict[str, List[List[OllamaResponse]]]:
+    """
+    Executes benchmarks with plain text output (original behavior).
+    
+    Args:
+        model_names: List of model names to benchmark
+        args: Parsed command line arguments
+        
+    Returns:
+        Dictionary mapping model names to lists of benchmark runs
+    """
+    benchmarks: Dict[str, List[List[OllamaResponse]]] = {}
+    
+    # Execute benchmarks for each model and prompt
+    for model_name in model_names:
+        all_runs: List[List[OllamaResponse]] = []
+        
+        for run_number in range(args.runs):
+            if args.runs > 1:
+                print(f\"\\n{'='*60}\\nRun {run_number + 1}/{args.runs} for model: {model_name}\\n{'='*60}\")
+            
+            responses: List[OllamaResponse] = []
+            for prompt in args.prompts:
+                if args.verbose:
+                    print(f\"\\n\\nBenchmarking: {model_name}\\nPrompt: {prompt}\")
+
+                if response := run_benchmark(model_name, prompt, verbose=args.verbose, num_gpu=args.num_gpu):
+                    responses.append(response)
+                    if args.verbose:
+                        print(f\"Response: {response.message.content}\")
+                        inference_stats(response)
+            
+            all_runs.append(responses)
+            
+            # Unload model from memory based on keep_model_loaded setting
+            should_unload = False
+            
+            if not args.keep_model_loaded:
+                should_unload = run_number < args.runs - 1 or model_names.index(model_name) < len(model_names) - 1
+            elif model_names.index(model_name) < len(model_names) - 1 and run_number == args.runs - 1:
+                should_unload = True
+            
+            if should_unload:
+                try:
+                    print(f\"\\nUnloading {model_name} from memory...\")
+                    ollama_client.generate(model=model_name, prompt=\"\", keep_alive=0)
+                    print(f\"✓ {model_name} unloaded\")
+                except Exception as e:
+                    print(f\"Note: Could not unload model: {e}\")
+
+        benchmarks[model_name] = all_runs
+    
+    return benchmarks
 
 
 def main() -> None:
@@ -541,6 +831,14 @@ def main() -> None:
         default="http://localhost:11434",
         help="Ollama host URL (default: http://localhost:11434). Can also be set via OLLAMA_HOST environment variable.",
     )
+    parser.add_argument(
+        "-l",
+        "--layout",
+        type=str,
+        choices=['rich', 'plain'],
+        default='rich',
+        help="Display layout style: 'rich' for side-by-side streaming output with live stats (default), 'plain' for classic output.",
+    )
 
     args = parser.parse_args()
     
@@ -551,54 +849,16 @@ def main() -> None:
     ollama_client = ollama.Client(host=host)
     
     print(
-        f"\nOllama Host: {host}\nVerbose: {args.verbose}\nTest models: {args.models}\nPrompts: {args.prompts}\nTable Output: {args.table}\nRuns: {args.runs}\nKeep Model Loaded: {args.keep_model_loaded}"
+        f"\nOllama Host: {host}\nVerbose: {args.verbose}\nTest models: {args.models}\nPrompts: {args.prompts}\nTable Output: {args.table}\nRuns: {args.runs}\nKeep Model Loaded: {args.keep_model_loaded}\nLayout: {args.layout}"
     )
 
     model_names = get_benchmark_models(args.models)
-    benchmarks: Dict[str, List[List[OllamaResponse]]] = {}  # Changed to store runs separately
-
-    # Execute benchmarks for each model and prompt
-    for model_name in model_names:
-        all_runs: List[List[OllamaResponse]] = []
-        
-        for run_number in range(args.runs):
-            if args.runs > 1:
-                print(f"\n{'='*60}\nRun {run_number + 1}/{args.runs} for model: {model_name}\n{'='*60}")
-            
-            responses: List[OllamaResponse] = []
-            for prompt in args.prompts:
-                if args.verbose:
-                    print(f"\n\nBenchmarking: {model_name}\nPrompt: {prompt}")
-
-                if response := run_benchmark(model_name, prompt, verbose=args.verbose, num_gpu=args.num_gpu):
-                    responses.append(response)
-                    if args.verbose:
-                        print(f"Response: {response.message.content}")
-                        inference_stats(response)
-            
-            all_runs.append(responses)
-            
-            # Unload model from memory based on keep_model_loaded setting
-            # If keep_model_loaded is True: only unload when moving to next model
-            # If keep_model_loaded is False: unload after each run
-            should_unload = False
-            
-            if not args.keep_model_loaded:
-                # Always unload after each run if keep_model_loaded is False
-                should_unload = run_number < args.runs - 1 or model_names.index(model_name) < len(model_names) - 1
-            elif model_names.index(model_name) < len(model_names) - 1 and run_number == args.runs - 1:
-                # Only unload when finished all runs for this model and there are more models to benchmark
-                should_unload = True
-            
-            if should_unload:
-                try:
-                    print(f"\nUnloading {model_name} from memory...")
-                    ollama_client.generate(model=model_name, prompt="", keep_alive=0)
-                    print(f"✓ {model_name} unloaded")
-                except Exception as e:
-                    print(f"Note: Could not unload model: {e}")
-
-        benchmarks[model_name] = all_runs
+    
+    # Branch based on layout choice
+    if args.layout == 'rich':
+        benchmarks = run_benchmark_with_rich_layout(model_names, args)
+    else:  # args.layout == 'plain'
+        benchmarks = run_benchmark_plain(model_names, args)
 
     if args.table:
         table_stats(benchmarks, args.runs)
