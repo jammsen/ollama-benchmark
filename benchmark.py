@@ -754,8 +754,8 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                     else:
                         layout["stats"].update(Panel(
                             "[dim]Waiting for first benchmark completion...[/dim]",
-                            title="[bold blue]Last Statistics[/bold blue]",
-                            border_style="blue"
+                            title="[bold cyan]Last Statistics[/bold cyan]",
+                            border_style="cyan"
                         ))
                     layout["ollama_ps"].update(Panel(
                         create_ollama_ps_table(),
@@ -888,8 +888,8 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                                     else:
                                         layout["stats"].update(Panel(
                                             "[dim]Waiting for first benchmark completion...[/dim]",
-                                            title="[bold blue]Last Statistics[/bold blue]",
-                                            border_style="blue"
+                                            title="[bold cyan]Last Statistics[/bold cyan]",
+                                            border_style="cyan"
                                         ))
                                     layout["ollama_ps"].update(Panel(
                                         create_ollama_ps_table(),
@@ -963,7 +963,10 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         metrics_text.append(" - ", style="white")
                         metrics_text.append("Load Time (s): ", style="cyan")
                         metrics_text.append(f"{stats_data['load_time']:.2f}", style="white")
-                        status_messages.append(metrics_text.plain)
+                        status_messages.append(metrics_text)
+                        
+                        # Create status display with mixed text objects and strings
+                        status_display = Group(*[msg if isinstance(msg, RichText) else Text(msg) for msg in status_messages[-20:]])
                         
                         layout["stats"].update(Panel(
                             create_stats_table(**last_stats_data),
@@ -976,7 +979,7 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                             border_style="cyan"
                         ))
                         layout["status"].update(Panel(
-                            "\n".join(status_messages[-20:]) if status_messages else "No status updates",
+                            status_display if status_messages else "No status updates",
                             title="[bold cyan]Status[/bold cyan]",
                             border_style="cyan"
                         ))
