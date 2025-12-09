@@ -413,17 +413,17 @@ def table_stats(benchmarks: Dict[str, List[List[OllamaResponse]]], runs: int) ->
                 total_ts = (prompt_eval_count + eval_count) / nanosec_to_sec(prompt_eval_duration + eval_duration) if (prompt_eval_duration + eval_duration) > 0 else 0
 
                 table.add_row(
-                    model_name,
+                    f"[bold]{model_name}[/bold]",
                     "[bold yellow]Average[/bold yellow]",
-                    f"{prompt_ts:.2f}",
-                    f"{response_ts:.2f}",
-                    f"{total_ts:.2f}",
-                    f"{nanosec_to_sec(load_duration):.2f}",
-                    f"{prompt_eval_count:.2f}",
-                    f"{nanosec_to_sec(prompt_eval_duration):.2f}",
-                    f"{eval_count:.2f}",
-                    f"{nanosec_to_sec(eval_duration):.2f}",
-                    f"{nanosec_to_sec(total_duration):.2f}"
+                    f"[bold]{prompt_ts:.2f}[/bold]",
+                    f"[bold]{response_ts:.2f}[/bold]",
+                    f"[bold]{total_ts:.2f}[/bold]",
+                    f"[bold]{nanosec_to_sec(load_duration):.2f}[/bold]",
+                    f"[bold]{prompt_eval_count:.2f}[/bold]",
+                    f"[bold]{nanosec_to_sec(prompt_eval_duration):.2f}[/bold]",
+                    f"[bold]{eval_count:.2f}[/bold]",
+                    f"[bold]{nanosec_to_sec(eval_duration):.2f}[/bold]",
+                    f"[bold]{nanosec_to_sec(total_duration):.2f}[/bold]"
                 )
 
     console.print(table)
