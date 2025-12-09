@@ -659,6 +659,7 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
     console = Console()
     benchmarks: Dict[str, List[List[OllamaResponse]]] = {}
     status_messages: List[str] = []  # Collect status messages for display
+    last_stats_data: Optional[Dict] = None  # Store last completed stats
     
     for model_name in model_names:
         all_runs: List[List[OllamaResponse]] = []
@@ -743,11 +744,19 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         title="[bold cyan]Streaming Output[/bold cyan]",
                         border_style="cyan"
                     ))
-                    layout["stats"].update(Panel(
-                        create_stats_table(**stats_data),
-                        title="[bold cyan]Statistics[/bold cyan]",
-                        border_style="cyan"
-                    ))
+                    # Show last stats or empty panel
+                    if last_stats_data:
+                        layout["stats"].update(Panel(
+                            create_stats_table(**last_stats_data),
+                            title="[bold green]Last Statistics[/bold green]",
+                            border_style="green"
+                        ))
+                    else:
+                        layout["stats"].update(Panel(
+                            "[dim]Waiting for first benchmark completion...[/dim]",
+                            title="[bold blue]Last Statistics[/bold blue]",
+                            border_style="blue"
+                        ))
                     layout["ollama_ps"].update(Panel(
                         create_ollama_ps_table(),
                         title="[bold cyan]Ollama PS[/bold cyan]",
@@ -869,11 +878,19 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                                 word_count += len(chunk_content.split())
                                 if word_count % 10 == 0:
                                     stats_data["generated_tokens"] = word_count
-                                    layout["stats"].update(Panel(
-                                        create_stats_table(**stats_data),
-                                        title="[bold cyan]Statistics[/bold cyan]",
-                                        border_style="cyan"
-                                    ))
+                                    # Keep showing last stats during streaming
+                                    if last_stats_data:
+                                        layout["stats"].update(Panel(
+                                            create_stats_table(**last_stats_data),
+                                            title="[bold green]Last Statistics[/bold green]",
+                                            border_style="green"
+                                        ))
+                                    else:
+                                        layout["stats"].update(Panel(
+                                            "[dim]Waiting for first benchmark completion...[/dim]",
+                                            title="[bold blue]Last Statistics[/bold blue]",
+                                            border_style="blue"
+                                        ))
                                     layout["ollama_ps"].update(Panel(
                                         create_ollama_ps_table(),
                                         title="[bold cyan]Ollama PS[/bold cyan]",
@@ -929,14 +946,29 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         stats_data["generation_time"] = nanosec_to_sec(benchmark_response.eval_duration)
                         stats_data["total_time"] = nanosec_to_sec(benchmark_response.total_duration)
                         
-                        # Add performance metrics to status messages
-                        metrics_line = f"Prompt Evaluation Rate (T/s): {stats_data['prompt_processing']:.2f} - Evaluation Rate (T/s): {stats_data['generation_speed']:.2f} - Total Rate (T/s): {stats_data['combined_speed']:.2f} - Load Time (s): {stats_data['load_time']:.2f}"
-                        status_messages.append(metrics_line)
+                        # Store this as last completed stats
+                        last_stats_data = stats_data.copy()
+                        
+                        # Add performance metrics to status messages with colors
+                        from rich.text import Text as RichText
+                        metrics_text = RichText()
+                        metrics_text.append("Prompt Evaluation Rate (T/s): ", style="cyan")
+                        metrics_text.append(f"{stats_data['prompt_processing']:.2f}", style="white")
+                        metrics_text.append(" - ", style="white")
+                        metrics_text.append("Evaluation Rate (T/s): ", style="cyan")
+                        metrics_text.append(f"{stats_data['generation_speed']:.2f}", style="white")
+                        metrics_text.append(" - ", style="white")
+                        metrics_text.append("Total Rate (T/s): ", style="cyan")
+                        metrics_text.append(f"{stats_data['combined_speed']:.2f}", style="white")
+                        metrics_text.append(" - ", style="white")
+                        metrics_text.append("Load Time (s): ", style="cyan")
+                        metrics_text.append(f"{stats_data['load_time']:.2f}", style="white")
+                        status_messages.append(metrics_text.plain)
                         
                         layout["stats"].update(Panel(
-                            create_stats_table(**stats_data),
-                            title="[bold cyan]Statistics[/bold cyan]",
-                            border_style="cyan"
+                            create_stats_table(**last_stats_data),
+                            title="[bold green]Last Statistics[/bold green]",
+                            border_style="green"
                         ))
                         layout["ollama_ps"].update(Panel(
                             create_ollama_ps_table(),
