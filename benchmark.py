@@ -860,15 +860,13 @@ def main() -> None:
     else:  # args.layout == 'plain'
         benchmarks = run_benchmark_plain(model_names, args)
 
-    # Display final results (table or detailed stats)
+    # Display final results
     if args.table:
         table_stats(benchmarks, args.runs)
     else:
-        # Calculate and display average statistics for plain mode
-        # Rich mode already showed stats during execution, so only show for plain
-        if args.layout == 'plain':
-            for model_name, all_runs in benchmarks.items():
-                average_stats_multi_run(model_name, all_runs, args.runs)
+        # Show summary statistics for all modes
+        for model_name, all_runs in benchmarks.items():
+            average_stats_multi_run(model_name, all_runs, args.runs)
 
 
 if __name__ == "__main__":
