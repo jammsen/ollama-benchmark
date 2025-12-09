@@ -333,6 +333,16 @@ def get_benchmark_models(test_models: List[str] = []) -> List[str]:
         if len(model_names) < len(test_models):
             missing_models = set(test_models) - set(available_models)
             print(f"Warning: Some requested models are not available: {missing_models}")
+            
+            # Try to pull missing models
+            for model in missing_models:
+                print(f"Attempting to pull model: {model}")
+                try:
+                    ollama_client.pull(model)
+                    print(f"Successfully pulled {model}")
+                    model_names.append(model)
+                except Exception as e:
+                    print(f"Failed to pull {model}: {str(e)}")
 
     if not model_names:
         raise RuntimeError("No valid models found for benchmarking")
