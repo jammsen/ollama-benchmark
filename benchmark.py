@@ -338,8 +338,32 @@ def get_benchmark_models(test_models: List[str] = []) -> List[str]:
             for model in missing_models:
                 print(f"Attempting to pull model: {model}")
                 try:
-                    ollama_client.pull(model)
-                    print(f"Successfully pulled {model}")
+                    # Stream the pull progress
+                    current_digest = None
+                    for progress in ollama_client.pull(model, stream=True):
+                        # Display progress information
+                        if 'status' in progress:
+                            status = progress['status']
+                            
+                            # Track digest to avoid repeating messages
+                            digest = progress.get('digest', '')
+                            if digest and digest != current_digest:
+                                current_digest = digest
+                                print(f"\n{status}: {digest[:12]}...")
+                            
+                            # Show download progress
+                            if 'completed' in progress and 'total' in progress:
+                                completed = progress['completed']
+                                total = progress['total']
+                                percentage = (completed / total * 100) if total > 0 else 0
+                                completed_mb = completed / (1024 * 1024)
+                                total_mb = total / (1024 * 1024)
+                                print(f"\r{status}: {completed_mb:.1f}/{total_mb:.1f} MB ({percentage:.1f}%)", end="", flush=True)
+                            elif status and not digest:
+                                # For status messages without progress bars
+                                print(f"\r{status}", end="", flush=True)
+                    
+                    print(f"\n✓ Successfully pulled {model}")
                     model_names.append(model)
                 except Exception as e:
                     print(f"Failed to pull {model}: {str(e)}")
