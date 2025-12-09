@@ -758,14 +758,14 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                             if hasattr(chunk.message, 'content'):
                                 chunk_content = chunk.message.content
                                 content += chunk_content
-                                streamed_text.append(chunk_content)
+                                streamed_text.append(chunk_content, style="white")
                                 
                                 # Update output panel - show only last N lines to simulate scrolling
                                 lines = streamed_text.plain.split('\n')
                                 if len(lines) > max_lines_to_show:
                                     # Keep only the last max_lines_to_show lines
                                     visible_lines = '\n'.join(lines[-max_lines_to_show:])
-                                    display_text = Text(visible_lines)
+                                    display_text = Text(visible_lines, style="white")
                                 else:
                                     display_text = streamed_text
                                 
