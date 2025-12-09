@@ -350,14 +350,14 @@ def table_stats(benchmarks: Dict[str, List[List[OllamaResponse]]], runs: int) ->
     
     table.add_column("Model\nName", style="cyan", no_wrap=True)
     table.add_column("Run", style="yellow")
-    table.add_column("Prompt\nEvaluation Rate\n(T/s)", style="magenta", justify="right")
+    table.add_column("Prompt\nEvaluation Rate\n(T/s)", style="green", justify="right")
     table.add_column("Evaluation\nRate\n(T/s)", style="green", justify="right")
-    table.add_column("Total\nRate\n(T/s)", style="magenta", justify="right")
+    table.add_column("Total\nRate\n(T/s)", style="green", justify="right")
     table.add_column("Load Time\n(s)", style="white", justify="right")
     table.add_column("Prompt\nEvaluation Count", style="white", justify="right")
     table.add_column("Prompt\nEvaluation Time\n(s)", style="white", justify="right")
     table.add_column("Evaluation\nCount", style="white", justify="right")
-    table.add_column("Evaluation\nTime\n(s)", style="cyan", justify="right")
+    table.add_column("Evaluation\nTime\n(s)", style="white", justify="right")
     table.add_column("Total Time\n(s)", style="white", justify="right")
     
     for model_name, all_runs in benchmarks.items():
