@@ -764,7 +764,7 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                                 output_content.append(f"Prompt {prompt_idx + 1}/{len(args.prompts)}: ", style="cyan")
                                 output_content.append(f"{prompt}\n\n", style="white")
                                 output_content.append("Response:\n", style="cyan")
-                                output_content.append(display_text, style="white")
+                                output_content.append(display_text)
                                 
                                 layout["output"].update(Panel(
                                     output_content,
