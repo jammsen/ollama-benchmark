@@ -767,10 +767,27 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         options['num_gpu'] = args.num_gpu
                     
                     try:
+                        # Add status message for loading
+                        status_messages.append(f"Loading model {model_name}...")
+                        layout["status"].update(Panel(
+                            "\n".join(status_messages[-20:]) if status_messages else "No status updates",
+                            title="[bold cyan]Status[/bold cyan]",
+                            border_style="cyan"
+                        ))
+                        
                         # Stream the response
                         messages = [{"role": "user", "content": prompt}]
                         content = ""
                         final_chunk = None
+                        
+                        status_messages.append("✓ Model loaded")
+                        status_messages.append("Starting chat stream...")
+                        layout["status"].update(Panel(
+                            "\n".join(status_messages[-20:]) if status_messages else "No status updates",
+                            title="[bold cyan]Status[/bold cyan]",
+                            border_style="cyan"
+                        ))
+                        
                         stream = ollama_client.chat(
                             model=model_name,
                             messages=messages,
@@ -868,7 +885,10 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         
                         if not content.strip():
                             console.print(f"\n[bold red]Error: Ollama model {model_name} returned empty response.[/bold red]")
+                            status_messages.append(f"Error: Empty response from {model_name}")
                             continue
+                        
+                        status_messages.append("✓ Response completed")
                         
                         # Use metrics from the final streaming chunk
                         if final_chunk:
