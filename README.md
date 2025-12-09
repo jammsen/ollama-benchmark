@@ -112,7 +112,47 @@ Follow these instructions to set up and run benchmarks on your system.
 - `-m, --models`: Space-separated list of models to benchmark (defaults to all available models)
 - `-p, --prompts`: Space-separated list of custom prompts (defaults to a predefined set testing various capabilities)
 - `-t, --table_output`: Results printed into a table output
+- `-r, --runs`: Number of times to run each benchmark (default: 3). Results show individual runs and averages
+- `-k, --keep-model-loaded`: Keep models loaded in memory between runs of the same model (default: True)
+- `-H, --host`: Ollama host URL (default: http://localhost:11434)
 - `--num-gpu`: Number of model layers to offload to GPU (useful for large models that don't fit entirely in VRAM)
+- `--no-keep-model-loaded`: Unload models from memory after each run
+
+#### Multiple Runs and Averaging
+
+By default, the benchmark runs each model 3 times and shows individual run statistics plus an average. You can customize this:
+
+```bash
+# Run 5 times per model
+python benchmark.py --models llama3.2:1b -r 5 -t
+
+# Single run (no averaging)
+python benchmark.py --models llama3.2:1b -r 1 -t
+```
+
+#### Model Memory Management
+
+By default, models stay loaded in GPU memory between runs of the same model for faster benchmarking. For systems with limited VRAM or slow PCIe connections, you can unload models after each run:
+
+```bash
+# Unload model after each run (slower but frees VRAM)
+python benchmark.py --models gpt-oss:120b -r 3 --no-keep-model-loaded -t
+```
+
+#### Remote Ollama Instances
+
+To benchmark against a remote Ollama instance or a Docker container, use the `-H` or `--host` parameter:
+
+```bash
+# Connect to Ollama running on a different host
+python benchmark.py --models llama3 -H http://192.168.1.100:11434
+
+# Connect to Ollama running in Docker
+python benchmark.py --models llama3 -H http://localhost:11434
+
+# Or using environment variable (CLI parameter takes precedence)
+OLLAMA_HOST=http://192.168.1.100:11434 python benchmark.py --models llama3
+```
 
 #### GPU Layer Offloading
 
@@ -124,18 +164,6 @@ python benchmark.py --verbose --models gpt-oss:120b -p "hello there" --num-gpu 3
 ```
 
 This is useful for running models like 70B or 120B parameter models on consumer GPUs with limited VRAM. Higher values use more GPU memory but provide better performance.
-
-#### Remote Ollama Instances
-
-To benchmark against a remote Ollama instance or a Docker container, set the `OLLAMA_HOST` environment variable:
-
-```bash
-# Connect to Ollama running on a different host
-OLLAMA_HOST=http://192.168.1.100:11434 python benchmark.py --models llama3
-
-# Connect to Ollama running in Docker
-OLLAMA_HOST=http://localhost:11434 python benchmark.py --models llama3
-```
 
 ### Default Benchmark Suite
 
