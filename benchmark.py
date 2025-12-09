@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Ollama Model Benchmark Tool
+LLM Benchmark tool for Ollama
 
 A lightweight tool for measuring LLM performance metrics via Ollama:
 - Token processing speed (t/s)
@@ -9,10 +9,10 @@ A lightweight tool for measuring LLM performance metrics via Ollama:
 - Response generation time
 
 Usage:
-    python benchmark.py [-v] [-m MODEL_NAMES...] [-p PROMPTS...]
+    python benchmark.py [-v] [-m MODEL_NAMES...] [-p PROMPTS...] [-t] 
 
 Example:
-    python benchmark.py --verbose --models llama2:13b codellama:34b
+    python benchmark.py --verbose --models llama3.2:1b qwen3:4b "hello there" --table_output
 """
 
 import argparse

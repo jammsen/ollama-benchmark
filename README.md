@@ -1,6 +1,6 @@
-# Ollama based LLM Benchmark
+# LLM Benchmark tool for Ollama
 
-This tool allows you to get the t/s (tokens per second) of Large Language Models (LLMs) running on your local machine. Currently we only support testing Ollama llms
+This tool allows you to get the t/s (tokens per second) of Large Language Models (LLMs) running on your local machine.
 
 ## Example output
 
@@ -60,7 +60,7 @@ Follow these instructions to set up and run benchmarks on your system.
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/larryhopecode/ollama-benchmark.git
+   git clone https://github.com/jammsen/ollama-benchmark.git
    cd ollama-benchmark
    ```
 
@@ -84,15 +84,9 @@ Follow these instructions to set up and run benchmarks on your system.
 
 ## Usage
 
-1. **Start Ollama Server**
+1. **Run Benchmarks**
 
-   Ensure the Ollama service is running:
-
-   ```bash
-   ollama serve
-   ```
-
-2. **Run Benchmarks**
+   Ensure that Ollama is running:
 
    Basic usage:
 
@@ -100,10 +94,16 @@ Follow these instructions to set up and run benchmarks on your system.
    python benchmark.py
    ```
 
-   With options:
+   Singe model & verbose option:
 
    ```bash
    python benchmark.py --verbose --models deepseek-r1:70b --prompts "Write a hello world program" "Explain quantum computing"
+   ```
+
+   Multi model, verbose, table and big prompt option:
+
+   ```bash
+   python benchmark.py --verbose --models llama3 gemma3 gpt-oss --prompts "Design a scalable web application architecture for an e-commerce platform that needs to handle 10,000 concurrent users during peak shopping periods. Your architecture should include a detailed database design with proper normalization, effective caching strategies using Redis or Memcached, load balancers, CDN integration, payment processing systems, inventory management, user authentication and authorization, session management, and monitoring tools. Explain the key components, their interactions, data flow between services, and how the system maintains performance and reliability under high traffic loads while ensuring secure transactions." -t
    ```
 
 ### Command Line Options
@@ -111,6 +111,8 @@ Follow these instructions to set up and run benchmarks on your system.
 - `-v, --verbose`: Enable detailed output including streaming responses
 - `-m, --models`: Space-separated list of models to benchmark (defaults to all available models)
 - `-p, --prompts`: Space-separated list of custom prompts (defaults to a predefined set testing various capabilities)
+- `-t, --table_output`: Results printed into a table output
+ 
 
 The default benchmark suite includes prompts testing:
 
