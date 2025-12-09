@@ -25,12 +25,13 @@ import ollama
 from pydantic import BaseModel, Field
 
 from tabulate import tabulate
-from rich.console import Console
+from rich.console import Console, RenderableType
 from rich.live import Live
 from rich.layout import Layout
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
+from rich.console import Group
 
 # Ollama client will be initialized after parsing arguments
 ollama_client = None
@@ -593,11 +594,13 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                 
                 # Initialize response text collector
                 streamed_text = Text()
+                max_lines_to_show = 50  # Keep last 50 lines visible
                 
                 with Live(layout, console=console, refresh_per_second=10, screen=True) as live:
                     # Show initial state
+                    header = Text(f"Benchmarking: {model_name}\nPrompt {prompt_idx + 1}/{len(args.prompts)}: {prompt}\n\nResponse:\n", style="bold blue")
                     layout["output"].update(Panel(
-                        Text(f"Benchmarking: {model_name}\nPrompt {prompt_idx + 1}/{len(args.prompts)}: {prompt}\n\nResponse:\n", style="bold blue"),
+                        header,
                         title="[bold cyan]Streaming Output[/bold cyan]",
                         border_style="blue"
                     ))
@@ -632,9 +635,17 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                                 content += chunk_content
                                 streamed_text.append(chunk_content)
                                 
-                                # Update output panel
+                                # Update output panel - show only last N lines to simulate scrolling
+                                lines = streamed_text.plain.split('\n')
+                                if len(lines) > max_lines_to_show:
+                                    # Keep only the last max_lines_to_show lines
+                                    visible_lines = '\n'.join(lines[-max_lines_to_show:])
+                                    display_text = Text(visible_lines)
+                                else:
+                                    display_text = streamed_text
+                                
                                 output_content = Text(f"Benchmarking: {model_name}\nPrompt {prompt_idx + 1}/{len(args.prompts)}: {prompt}\n\nResponse:\n", style="bold blue")
-                                output_content.append(streamed_text)
+                                output_content.append(display_text)
                                 
                                 layout["output"].update(Panel(
                                     output_content,
