@@ -533,9 +533,9 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
         
         for run_number in range(args.runs):
             if args.runs > 1:
-                console.print(f\"\\n[bold cyan]{'='*60}[/bold cyan]\")
-                console.print(f\"[bold cyan]Run {run_number + 1}/{args.runs} for model: {model_name}[/bold cyan]\")
-                console.print(f\"[bold cyan]{'='*60}[/bold cyan]\\n\")
+                console.print(f"\n[bold cyan]{'='*60}[/bold cyan]")
+                console.print(f"[bold cyan]Run {run_number + 1}/{args.runs} for model: {model_name}[/bold cyan]")
+                console.print(f"[bold cyan]{'='*60}[/bold cyan]\n")
             
             responses: List[OllamaResponse] = []
             
@@ -543,22 +543,22 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                 # Create layout for side-by-side display
                 layout = Layout()
                 layout.split_row(
-                    Layout(name=\"output\", ratio=2),
-                    Layout(name=\"stats\", ratio=1)
+                    Layout(name="output", ratio=2),
+                    Layout(name="stats", ratio=1)
                 )
                 
                 # Initialize stats data
                 stats_data = {
-                    \"model_name\": model_name,
-                    \"prompt_processing\": 0.0,
-                    \"generation_speed\": 0.0,
-                    \"combined_speed\": 0.0,
-                    \"input_tokens\": 0,
-                    \"generated_tokens\": 0,
-                    \"load_time\": 0.0,
-                    \"processing_time\": 0.0,
-                    \"generation_time\": 0.0,
-                    \"total_time\": 0.0
+                    "model_name": model_name,
+                    "prompt_processing": 0.0,
+                    "generation_speed": 0.0,
+                    "combined_speed": 0.0,
+                    "input_tokens": 0,
+                    "generated_tokens": 0,
+                    "load_time": 0.0,
+                    "processing_time": 0.0,
+                    "generation_time": 0.0,
+                    "total_time": 0.0
                 }
                 
                 # Initialize response text collector
@@ -566,15 +566,15 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                 
                 with Live(layout, console=console, refresh_per_second=10, screen=True) as live:
                     # Show initial state
-                    layout[\"output\"].update(Panel(
-                        Text(f\"Benchmarking: {model_name}\\nPrompt {prompt_idx + 1}/{len(args.prompts)}: {prompt}\\n\\nResponse:\\n\", style=\"bold blue\"),
-                        title=\"[bold cyan]Streaming Output[/bold cyan]\",
-                        border_style=\"blue\"
+                    layout["output"].update(Panel(
+                        Text(f"Benchmarking: {model_name}\nPrompt {prompt_idx + 1}/{len(args.prompts)}: {prompt}\n\nResponse:\n", style="bold blue"),
+                        title="[bold cyan]Streaming Output[/bold cyan]",
+                        border_style="blue"
                     ))
-                    layout[\"stats\"].update(Panel(
+                    layout["stats"].update(Panel(
                         create_stats_table(**stats_data),
-                        title=\"[bold cyan]Statistics[/bold cyan]\",
-                        border_style=\"cyan\"
+                        title="[bold cyan]Statistics[/bold cyan]",
+                        border_style="cyan"
                     ))
                     
                     time.sleep(0.3)
@@ -586,8 +586,8 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                     
                     try:
                         # Stream the response
-                        messages = [{\"role\": \"user\", \"content\": prompt}]
-                        content = \"\"
+                        messages = [{"role": "user", "content": prompt}]
+                        content = ""
                         stream = ollama_client.chat(
                             model=model_name,
                             messages=messages,
@@ -603,27 +603,27 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                                 streamed_text.append(chunk_content)
                                 
                                 # Update output panel
-                                output_content = Text(f\"Benchmarking: {model_name}\\nPrompt {prompt_idx + 1}/{len(args.prompts)}: {prompt}\\n\\nResponse:\\n\", style=\"bold blue\")
+                                output_content = Text(f"Benchmarking: {model_name}\nPrompt {prompt_idx + 1}/{len(args.prompts)}: {prompt}\n\nResponse:\n", style="bold blue")
                                 output_content.append(streamed_text)
                                 
-                                layout[\"output\"].update(Panel(
+                                layout["output"].update(Panel(
                                     output_content,
-                                    title=\"[bold cyan]Streaming Output[/bold cyan]\",
-                                    border_style=\"blue\"
+                                    title="[bold cyan]Streaming Output[/bold cyan]",
+                                    border_style="blue"
                                 ))
                                 
                                 # Update stats periodically (every 10 words)
                                 word_count += len(chunk_content.split())
                                 if word_count % 10 == 0:
-                                    stats_data[\"generated_tokens\"] = word_count
-                                    layout[\"stats\"].update(Panel(
+                                    stats_data["generated_tokens"] = word_count
+                                    layout["stats"].update(Panel(
                                         create_stats_table(**stats_data),
-                                        title=\"[bold cyan]Statistics[/bold cyan]\",
-                                        border_style=\"cyan\"
+                                        title="[bold cyan]Statistics[/bold cyan]",
+                                        border_style="cyan"
                                     ))
                         
                         if not content.strip():
-                            console.print(f\"\\n[bold red]Error: Ollama model {model_name} returned empty response.[/bold red]\")
+                            console.print(f"\n[bold red]Error: Ollama model {model_name} returned empty response.[/bold red]")
                             continue
                         
                         # Make a non-streaming call to get final metrics
@@ -637,7 +637,7 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         benchmark_response = OllamaResponse(
                             model=model_name,
                             message=Message(
-                                role=\"assistant\",
+                                role="assistant",
                                 content=content
                             ),
                             done=True,
@@ -652,26 +652,26 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         responses.append(benchmark_response)
                         
                         # Update final stats
-                        stats_data[\"prompt_processing\"] = benchmark_response.prompt_eval_count / nanosec_to_sec(benchmark_response.prompt_eval_duration) if benchmark_response.prompt_eval_duration > 0 else 0
-                        stats_data[\"generation_speed\"] = benchmark_response.eval_count / nanosec_to_sec(benchmark_response.eval_duration) if benchmark_response.eval_duration > 0 else 0
-                        stats_data[\"combined_speed\"] = (benchmark_response.prompt_eval_count + benchmark_response.eval_count) / nanosec_to_sec(benchmark_response.prompt_eval_duration + benchmark_response.eval_duration) if (benchmark_response.prompt_eval_duration + benchmark_response.eval_duration) > 0 else 0
-                        stats_data[\"input_tokens\"] = benchmark_response.prompt_eval_count
-                        stats_data[\"generated_tokens\"] = benchmark_response.eval_count
-                        stats_data[\"load_time\"] = nanosec_to_sec(benchmark_response.load_duration)
-                        stats_data[\"processing_time\"] = nanosec_to_sec(benchmark_response.prompt_eval_duration)
-                        stats_data[\"generation_time\"] = nanosec_to_sec(benchmark_response.eval_duration)
-                        stats_data[\"total_time\"] = nanosec_to_sec(benchmark_response.total_duration)
+                        stats_data["prompt_processing"] = benchmark_response.prompt_eval_count / nanosec_to_sec(benchmark_response.prompt_eval_duration) if benchmark_response.prompt_eval_duration > 0 else 0
+                        stats_data["generation_speed"] = benchmark_response.eval_count / nanosec_to_sec(benchmark_response.eval_duration) if benchmark_response.eval_duration > 0 else 0
+                        stats_data["combined_speed"] = (benchmark_response.prompt_eval_count + benchmark_response.eval_count) / nanosec_to_sec(benchmark_response.prompt_eval_duration + benchmark_response.eval_duration) if (benchmark_response.prompt_eval_duration + benchmark_response.eval_duration) > 0 else 0
+                        stats_data["input_tokens"] = benchmark_response.prompt_eval_count
+                        stats_data["generated_tokens"] = benchmark_response.eval_count
+                        stats_data["load_time"] = nanosec_to_sec(benchmark_response.load_duration)
+                        stats_data["processing_time"] = nanosec_to_sec(benchmark_response.prompt_eval_duration)
+                        stats_data["generation_time"] = nanosec_to_sec(benchmark_response.eval_duration)
+                        stats_data["total_time"] = nanosec_to_sec(benchmark_response.total_duration)
                         
-                        layout[\"stats\"].update(Panel(
+                        layout["stats"].update(Panel(
                             create_stats_table(**stats_data),
-                            title=\"[bold green]Statistics (Final)[/bold green]\",
-                            border_style=\"green\"
+                            title="[bold green]Statistics (Final)[/bold green]",
+                            border_style="green"
                         ))
                         
                         time.sleep(2.0)  # Hold final view
                         
                     except Exception as e:
-                        console.print(f\"\\n[bold red]Error benchmarking {model_name}: {str(e)}[/bold red]\")
+                        console.print(f"\n[bold red]Error benchmarking {model_name}: {str(e)}[/bold red]")
                         continue
             
             all_runs.append(responses)
@@ -686,11 +686,11 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
             
             if should_unload:
                 try:
-                    console.print(f\"\\n[yellow]Unloading {model_name} from memory...[/yellow]\")
-                    ollama_client.generate(model=model_name, prompt=\"\", keep_alive=0)
-                    console.print(f\"[green]✓ {model_name} unloaded[/green]\")
+                    console.print(f"\n[yellow]Unloading {model_name} from memory...[/yellow]")
+                    ollama_client.generate(model=model_name, prompt="", keep_alive=0)
+                    console.print(f"[green]✓ {model_name} unloaded[/green]")
                 except Exception as e:
-                    console.print(f\"[yellow]Note: Could not unload model: {e}[/yellow]\")
+                    console.print(f"[yellow]Note: Could not unload model: {e}[/yellow]")
         
         benchmarks[model_name] = all_runs
     
@@ -716,17 +716,17 @@ def run_benchmark_plain(model_names: List[str], args) -> Dict[str, List[List[Oll
         
         for run_number in range(args.runs):
             if args.runs > 1:
-                print(f\"\\n{'='*60}\\nRun {run_number + 1}/{args.runs} for model: {model_name}\\n{'='*60}\")
+                print(f"\n{'='*60}\nRun {run_number + 1}/{args.runs} for model: {model_name}\n{'='*60}")
             
             responses: List[OllamaResponse] = []
             for prompt in args.prompts:
                 if args.verbose:
-                    print(f\"\\n\\nBenchmarking: {model_name}\\nPrompt: {prompt}\")
+                    print(f"\n\nBenchmarking: {model_name}\nPrompt: {prompt}")
 
                 if response := run_benchmark(model_name, prompt, verbose=args.verbose, num_gpu=args.num_gpu):
                     responses.append(response)
                     if args.verbose:
-                        print(f\"Response: {response.message.content}\")
+                        print(f"Response: {response.message.content}")
                         inference_stats(response)
             
             all_runs.append(responses)
