@@ -12,7 +12,7 @@ Usage:
     python benchmark.py [-v] [-m MODEL_NAMES...] [-p PROMPTS...] [-t] 
 
 Example:
-    python benchmark.py --verbose --models llama3.2:1b qwen3:4b "hello there" --table_output
+    python benchmark.py --verbose --models llama3.2:1b qwen3:4b "hello there" --table
 """
 
 import argparse
@@ -508,7 +508,7 @@ def main() -> None:
     )
     parser.add_argument(
         "-t",
-        "--table_output",
+        "--table",
         action="store_true",
         help="Output as table instead of separate results per model",
         default=False,
@@ -551,7 +551,7 @@ def main() -> None:
     ollama_client = ollama.Client(host=host)
     
     print(
-        f"\nOllama Host: {host}\nVerbose: {args.verbose}\nTest models: {args.models}\nPrompts: {args.prompts}\nTable Output: {args.table_output}\nRuns: {args.runs}\nKeep Model Loaded: {args.keep_model_loaded}"
+        f"\nOllama Host: {host}\nVerbose: {args.verbose}\nTest models: {args.models}\nPrompts: {args.prompts}\nTable Output: {args.table}\nRuns: {args.runs}\nKeep Model Loaded: {args.keep_model_loaded}"
     )
 
     model_names = get_benchmark_models(args.models)
@@ -600,7 +600,7 @@ def main() -> None:
 
         benchmarks[model_name] = all_runs
 
-    if args.table_output:
+    if args.table:
         table_stats(benchmarks, args.runs)
     else:
         # Calculate and display average statistics

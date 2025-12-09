@@ -111,7 +111,7 @@ Follow these instructions to set up and run benchmarks on your system.
 - `-v, --verbose`: Enable detailed output including streaming responses
 - `-m, --models`: Space-separated list of models to benchmark (defaults to all available models)
 - `-p, --prompts`: Space-separated list of custom prompts (defaults to a predefined set testing various capabilities)
-- `-t, --table_output`: Results printed into a table output
+- `-t, --table`: Results printed into a table output
 - `-r, --runs`: Number of times to run each benchmark (default: 3). Results show individual runs and averages
 - `-k, --keep-model-loaded BOOL`: Keep models loaded in memory between runs (default: True). Set to False to unload after each run
 - `-H, --host`: Ollama host URL (default: http://localhost:11434)
