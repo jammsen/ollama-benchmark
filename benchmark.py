@@ -332,7 +332,7 @@ def average_stats_multi_run(model_name: str, all_runs: List[List[OllamaResponse]
 def table_stats(benchmarks: Dict[str, List[List[OllamaResponse]]], runs: int) -> None:
     """
     Calculates and prints statistics across multiple benchmark runs and models, output as table.
-    Shows individual runs and averages.
+    Shows individual runs and averages with Rich formatting.
 
     Args:
         benchmarks: Dict of modelNames and List of Lists of OllamaResponse objects (outer list = runs, inner list = prompts)
@@ -342,8 +342,23 @@ def table_stats(benchmarks: Dict[str, List[List[OllamaResponse]]], runs: int) ->
         print("No results to output")
         return
 
-    print("Table stats:")
-    table: List[List] = []
+    console = Console()
+    console.print("\n[bold cyan]Table stats:[/bold cyan]")
+    
+    # Create Rich table
+    table = Table(title="[bold magenta]Benchmark Results[/bold magenta]", show_header=True, header_style="bold cyan")
+    
+    table.add_column("Model\nName", style="cyan", no_wrap=True)
+    table.add_column("Run", style="white")
+    table.add_column("Prompt\nEvaluation Rate\n(T/s)", style="magenta", justify="right")
+    table.add_column("Evaluation\nRate\n(T/s)", style="green", justify="right")
+    table.add_column("Total\nRate\n(T/s)", style="magenta", justify="right")
+    table.add_column("Load Time\n(s)", style="cyan", justify="right")
+    table.add_column("Prompt\nEvaluation Count", style="white", justify="right")
+    table.add_column("Prompt\nEvaluation Time\n(s)", style="cyan", justify="right")
+    table.add_column("Evaluation\nCount", style="white", justify="right")
+    table.add_column("Evaluation\nTime\n(s)", style="cyan", justify="right")
+    table.add_column("Total Time\n(s)", style="cyan", justify="right")
     
     for model_name, all_runs in benchmarks.items():
         # Show each individual run
@@ -365,10 +380,19 @@ def table_stats(benchmarks: Dict[str, List[List[OllamaResponse]]], runs: int) ->
             total_ts = (prompt_eval_count + eval_count) / nanosec_to_sec(prompt_eval_duration + eval_duration) if (prompt_eval_duration + eval_duration) > 0 else 0
 
             run_label = f"Run {run_idx}" if runs > 1 else ""
-            table.append([f"{model_name}", run_label, prompt_ts, response_ts, total_ts,
-                          nanosec_to_sec(load_duration),
-                          prompt_eval_count, nanosec_to_sec(prompt_eval_duration), eval_count,
-                          nanosec_to_sec(eval_duration), nanosec_to_sec(total_duration)])
+            table.add_row(
+                f"[cyan]{model_name}[/cyan]",
+                run_label,
+                f"{prompt_ts:.2f}",
+                f"{response_ts:.2f}",
+                f"{total_ts:.2f}",
+                f"{nanosec_to_sec(load_duration):.2f}",
+                f"{prompt_eval_count:.2f}",
+                f"{nanosec_to_sec(prompt_eval_duration):.2f}",
+                f"{eval_count:.2f}",
+                f"{nanosec_to_sec(eval_duration):.2f}",
+                f"{nanosec_to_sec(total_duration):.2f}"
+            )
         
         # Calculate and show average across all runs
         if runs > 1 and all_runs:
@@ -388,16 +412,22 @@ def table_stats(benchmarks: Dict[str, List[List[OllamaResponse]]], runs: int) ->
                 response_ts = eval_count / nanosec_to_sec(eval_duration) if eval_duration > 0 else 0
                 total_ts = (prompt_eval_count + eval_count) / nanosec_to_sec(prompt_eval_duration + eval_duration) if (prompt_eval_duration + eval_duration) > 0 else 0
 
-                table.append([f"{model_name}", "Average", prompt_ts, response_ts, total_ts,
-                              nanosec_to_sec(load_duration),
-                              prompt_eval_count, nanosec_to_sec(prompt_eval_duration), eval_count,
-                              nanosec_to_sec(eval_duration), nanosec_to_sec(total_duration)])
+                table.add_row(
+                    f"[cyan]{model_name}[/cyan]",
+                    "[yellow]Average[/yellow]",
+                    f"{prompt_ts:.2f}",
+                    f"{response_ts:.2f}",
+                    f"{total_ts:.2f}",
+                    f"{nanosec_to_sec(load_duration):.2f}",
+                    f"{prompt_eval_count:.2f}",
+                    f"{nanosec_to_sec(prompt_eval_duration):.2f}",
+                    f"{eval_count:.2f}",
+                    f"{nanosec_to_sec(eval_duration):.2f}",
+                    f"{nanosec_to_sec(total_duration):.2f}"
+                )
 
-    print(tabulate(table, headers=["Model\nName", "Run", "Prompt\nEvaluation Rate\n(T/s)", "Evaluation\nRate\n(T/s)",
-                                   "Total\nRate\n(T/s)", "Load Time\n(s)",
-                                   "Prompt\nEvaluation Count", "Prompt\nEvaluation Time\n(s)",
-                                   "Evalutaion\nCount", "Evaluation\nTime\n(s)", "Total Time\n(s)"], tablefmt="orgtbl",
-                   floatfmt=".2f"))
+    console.print(table)
+    console.print()
 
 
 def get_benchmark_models(test_models: List[str] = []) -> List[str]:
