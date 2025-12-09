@@ -529,15 +529,10 @@ def main() -> None:
     parser.add_argument(
         "-k",
         "--keep-model-loaded",
-        action="store_true",
+        type=lambda x: str(x).lower() in ['true', '1', 'yes'],
         default=True,
-        help="Keep models loaded in memory between runs of the same model (default: True). Use --no-keep-model-loaded to unload after each run for systems with limited VRAM or slow PCIe connections.",
-    )
-    parser.add_argument(
-        "--no-keep-model-loaded",
-        action="store_false",
-        dest="keep_model_loaded",
-        help="Unload models from memory after each run. Useful for systems with limited VRAM or slow PCIe connections.",
+        metavar='BOOL',
+        help="Keep models loaded in memory between runs of the same model (default: True). Set to False to unload after each run for systems with limited VRAM or slow PCIe connections.",
     )
     parser.add_argument(
         "-H",

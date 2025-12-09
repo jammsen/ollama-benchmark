@@ -113,10 +113,9 @@ Follow these instructions to set up and run benchmarks on your system.
 - `-p, --prompts`: Space-separated list of custom prompts (defaults to a predefined set testing various capabilities)
 - `-t, --table_output`: Results printed into a table output
 - `-r, --runs`: Number of times to run each benchmark (default: 3). Results show individual runs and averages
-- `-k, --keep-model-loaded`: Keep models loaded in memory between runs of the same model (default: True)
+- `-k, --keep-model-loaded BOOL`: Keep models loaded in memory between runs (default: True). Set to False to unload after each run
 - `-H, --host`: Ollama host URL (default: http://localhost:11434)
 - `--num-gpu`: Number of model layers to offload to GPU (useful for large models that don't fit entirely in VRAM)
-- `--no-keep-model-loaded`: Unload models from memory after each run
 
 #### Multiple Runs and Averaging
 
@@ -136,7 +135,7 @@ By default, models stay loaded in GPU memory between runs of the same model for 
 
 ```bash
 # Unload model after each run (slower but frees VRAM)
-python benchmark.py --models gpt-oss:120b -r 3 --no-keep-model-loaded -t
+python benchmark.py --models gpt-oss:120b -r 3 -k False -t
 ```
 
 #### Remote Ollama Instances
