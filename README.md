@@ -112,7 +112,32 @@ Follow these instructions to set up and run benchmarks on your system.
 - `-m, --models`: Space-separated list of models to benchmark (defaults to all available models)
 - `-p, --prompts`: Space-separated list of custom prompts (defaults to a predefined set testing various capabilities)
 - `-t, --table_output`: Results printed into a table output
- 
+- `--num-gpu`: Number of model layers to offload to GPU (useful for large models that don't fit entirely in VRAM)
+
+#### GPU Layer Offloading
+
+For large models that exceed your GPU's VRAM capacity, you can use the `--num-gpu` parameter to control how many layers are loaded on the GPU:
+
+```bash
+# Load 35 layers on GPU, rest on CPU
+python benchmark.py --verbose --models gpt-oss:120b -p "hello there" --num-gpu 35
+```
+
+This is useful for running models like 70B or 120B parameter models on consumer GPUs with limited VRAM. Higher values use more GPU memory but provide better performance.
+
+#### Remote Ollama Instances
+
+To benchmark against a remote Ollama instance or a Docker container, set the `OLLAMA_HOST` environment variable:
+
+```bash
+# Connect to Ollama running on a different host
+OLLAMA_HOST=http://192.168.1.100:11434 python benchmark.py --models llama3
+
+# Connect to Ollama running in Docker
+OLLAMA_HOST=http://localhost:11434 python benchmark.py --models llama3
+```
+
+### Default Benchmark Suite
 
 The default benchmark suite includes prompts testing:
 

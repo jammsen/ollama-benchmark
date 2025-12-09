@@ -18,11 +18,17 @@ Example:
 import argparse
 from typing import List, Dict, Optional
 from datetime import datetime
+import os
 
 import ollama
 from pydantic import BaseModel, Field
 
 from tabulate import tabulate
+
+# Configure Ollama client to use the correct host
+# Set OLLAMA_HOST environment variable or default to localhost
+OLLAMA_HOST = os.getenv('OLLAMA_HOST', 'http://localhost:11434')
+ollama_client = ollama.Client(host=OLLAMA_HOST)
 
 
 class Message(BaseModel):
@@ -77,7 +83,8 @@ class OllamaResponse(BaseModel):
 def run_benchmark(
         model_name: str,
         prompt: str,
-        verbose: bool
+        verbose: bool,
+        num_gpu: Optional[int] = None
 ) -> Optional[OllamaResponse]:
     """
     Executes a benchmark run for a specific model and prompt.
@@ -86,20 +93,27 @@ def run_benchmark(
         model_name: Name of the Ollama model to benchmark
         prompt: Input text to send to the model
         verbose: If True, prints streaming output
+        num_gpu: Number of layers to offload to GPU (None = auto/default)
 
     Returns:
         OllamaResponse object containing benchmark results, or None if failed
     """
     messages = [{"role": "user", "content": prompt}]
+    
+    # Build options dict for GPU offloading if specified
+    options = {}
+    if num_gpu is not None:
+        options['num_gpu'] = num_gpu
 
     try:
         if verbose:
             # For verbose mode, we'll collect the content while streaming
             content = ""
-            stream = ollama.chat(
+            stream = ollama_client.chat(
                 model=model_name,
                 messages=messages,
                 stream=True,
+                options=options if options else None,
             )
             for chunk in stream:
                 if hasattr(chunk.message, 'content'):
@@ -114,9 +128,10 @@ def run_benchmark(
                 return None
 
             # Make a non-streaming call to get the metrics
-            response = ollama.chat(
+            response = ollama_client.chat(
                 model=model_name,
                 messages=messages,
+                options=options if options else None,
             )
 
             # Check if response has content
@@ -141,9 +156,10 @@ def run_benchmark(
             )
         else:
             # For non-verbose mode, just make a single non-streaming call
-            response = ollama.chat(
+            response = ollama_client.chat(
                 model=model_name,
                 messages=messages,
+                options=options if options else None,
             )
 
             # Check if response has content
@@ -300,7 +316,7 @@ def get_benchmark_models(test_models: List[str] = []) -> List[str]:
     Returns:
         List of validated model names available for benchmarking
     """
-    response = ollama.list()
+    response = ollama_client.list()
     available_models = [model.get("model") for model in response.get("models", [])]
 
     if not test_models:
@@ -376,6 +392,12 @@ def main() -> None:
         help="Output as table instead of separate results per model",
         default=False,
     )
+    parser.add_argument(
+        "--num-gpu",
+        type=int,
+        default=None,
+        help="Number of model layers to offload to GPU. Use this for large models that don't fit entirely in VRAM. Higher values use more GPU memory. Omit to let Ollama decide automatically.",
+    )
 
     args = parser.parse_args()
     print(
@@ -392,7 +414,7 @@ def main() -> None:
             if args.verbose:
                 print(f"\n\nBenchmarking: {model_name}\nPrompt: {prompt}")
 
-            if response := run_benchmark(model_name, prompt, verbose=args.verbose):
+            if response := run_benchmark(model_name, prompt, verbose=args.verbose, num_gpu=args.num_gpu):
                 responses.append(response)
                 if args.verbose:
                     print(f"Response: {response.message.content}")
