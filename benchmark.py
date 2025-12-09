@@ -554,7 +554,8 @@ def create_ollama_ps_table() -> Table:
     table = Table(show_header=True, box=None, padding=(0, 1), title="[bold]Running Models[/bold]")
     table.add_column("Model", style="cyan", no_wrap=True)
     table.add_column("Size", style="yellow", justify="right")
-    table.add_column("Processor", style="green")
+    table.add_column("Processor", style="green", justify="center")
+    table.add_column("Context", style="magenta", justify="right")
     
     try:
         ps_info = ollama_client.ps()
@@ -567,24 +568,36 @@ def create_ollama_ps_table() -> Table:
                     # Convert size to GB
                     size_gb = size / (1024**3) if size > 0 else 0
                     
-                    # Get processor info (try different possible keys)
-                    processor = "Unknown"
+                    # Determine processor (GPU or CPU)
+                    # Check size_vram to determine if running on GPU
+                    size_vram = model_info.get('size_vram', 0)
+                    if size_vram > 0:
+                        processor = "GPU"
+                    else:
+                        processor = "CPU"
+                    
+                    # Get context size from details
+                    context_size = "N/A"
                     if 'details' in model_info:
                         details = model_info['details']
-                        if 'parameter_size' in details:
-                            processor = details.get('parameter_size', 'Unknown')
+                        # Context length is typically in num_ctx or context_length
+                        if 'num_ctx' in details:
+                            context_size = str(details['num_ctx'])
+                        elif 'context_length' in details:
+                            context_size = str(details['context_length'])
                     
                     table.add_row(
                         model_name,
                         f"{size_gb:.2f} GB",
-                        processor
+                        processor,
+                        context_size
                     )
             else:
-                table.add_row("[dim]No models loaded[/dim]", "", "")
+                table.add_row("[dim]No models loaded[/dim]", "", "", "")
         else:
-            table.add_row("[dim]No models loaded[/dim]", "", "")
+            table.add_row("[dim]No models loaded[/dim]", "", "", "")
     except Exception as e:
-        table.add_row(f"[red]Error: {str(e)}[/red]", "", "")
+        table.add_row(f"[red]Error: {str(e)}[/red]", "", "", "")
     
     return table
 
@@ -663,7 +676,7 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                     layout["ollama_ps"].update(Panel(
                         create_ollama_ps_table(),
                         title="[bold cyan]Ollama PS[/bold cyan]",
-                        border_style="yellow"
+                        border_style="cyan"
                     ))
                     
                     time.sleep(0.3)
