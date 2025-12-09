@@ -734,7 +734,7 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                                     layout["ollama_ps"].update(Panel(
                                         create_ollama_ps_table(),
                                         title="[bold cyan]Ollama PS[/bold cyan]",
-                                        border_style="yellow"
+                                        border_style="cyan"
                                     ))
                         
                         if not content.strip():
