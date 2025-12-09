@@ -431,6 +431,29 @@ def table_stats(benchmarks: Dict[str, List[List[OllamaResponse]]], runs: int) ->
     console.print()
 
 
+def unload_all_models() -> None:
+    """
+    Unloads all currently loaded models from memory to ensure a clean benchmark state.
+    """
+    try:
+        ps_info = ollama_client.ps()
+        if ps_info and 'models' in ps_info:
+            loaded_models = ps_info['models']
+            if loaded_models:
+                print(f"\nUnloading {len(loaded_models)} model(s) from memory...")
+                for model_info in loaded_models:
+                    model_name = model_info.get('name', '')
+                    if model_name:
+                        try:
+                            ollama_client.generate(model=model_name, prompt="", keep_alive=0)
+                            print(f"✓ Unloaded {model_name}")
+                        except Exception as e:
+                            print(f"Warning: Could not unload {model_name}: {e}")
+                print()
+    except Exception as e:
+        print(f"Warning: Could not check/unload models: {e}\n")
+
+
 def get_benchmark_models(test_models: List[str] = []) -> List[str]:
     """
     Retrieves and validates the list of models to benchmark.
@@ -576,15 +599,30 @@ def create_ollama_ps_table() -> Table:
                     else:
                         processor = "CPU"
                     
-                    # Get context size from details
+                    # Get context size using show() API which has full model details
                     context_size = "N/A"
-                    if 'details' in model_info:
-                        details = model_info['details']
-                        # Context length is typically in num_ctx or context_length
-                        if 'num_ctx' in details:
-                            context_size = str(details['num_ctx'])
-                        elif 'context_length' in details:
-                            context_size = str(details['context_length'])
+                    try:
+                        show_info = ollama_client.show(model_name)
+                        if 'model_info' in show_info:
+                            model_details = show_info['model_info']
+                            # Look for num_ctx in various locations
+                            for key in ['num_ctx', 'context_length']:
+                                if key in model_details:
+                                    context_size = str(model_details[key])
+                                    break
+                        
+                        # Also check in modelfile or parameters
+                        if context_size == "N/A" and 'modelfile' in show_info:
+                            # Parse modelfile for PARAMETER num_ctx
+                            modelfile = show_info['modelfile']
+                            if 'PARAMETER num_ctx' in modelfile:
+                                import re
+                                match = re.search(r'PARAMETER num_ctx (\d+)', modelfile)
+                                if match:
+                                    context_size = match.group(1)
+                    except:
+                        # If show() fails, fallback to N/A
+                        pass
                     
                     table.add_row(
                         model_name,
@@ -785,7 +823,7 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         layout["ollama_ps"].update(Panel(
                             create_ollama_ps_table(),
                             title="[bold cyan]Ollama PS[/bold cyan]",
-                            border_style="yellow"
+                            border_style="cyan"
                         ))
                         
                         time.sleep(2.0)  # Hold final view
@@ -972,6 +1010,9 @@ def main() -> None:
         f"\nOllama Host: {host}\nVerbose: {args.verbose}\nTest models: {args.models}\nPrompts: {args.prompts}\nTable Output: {args.table}\nRuns: {args.runs}\nKeep Model Loaded: {args.keep_model_loaded}\nLayout: {args.layout}"
     )
 
+    # Unload all models before starting benchmark to ensure clean state
+    unload_all_models()
+    
     model_names = get_benchmark_models(args.models)
     
     # Branch based on layout choice
