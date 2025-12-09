@@ -756,6 +756,7 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         # Stream the response
                         messages = [{"role": "user", "content": prompt}]
                         content = ""
+                        final_chunk = None
                         stream = ollama_client.chat(
                             model=model_name,
                             messages=messages,
@@ -764,11 +765,21 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         )
                         
                         word_count = 0
+                        start_time = time.time()
+                        first_token_time = None
                         for chunk in stream:
+                            # Save the final chunk which contains metrics
+                            if chunk.done:
+                                final_chunk = chunk
+                            
                             if hasattr(chunk.message, 'content'):
                                 chunk_content = chunk.message.content
                                 content += chunk_content
                                 streamed_text.append(chunk_content, style="white")
+                                
+                                # Mark first token time
+                                if first_token_time is None and chunk_content:
+                                    first_token_time = time.time()
                                 
                                 # Update output panel - show only last N lines to simulate scrolling
                                 lines = streamed_text.plain.split('\n')
@@ -831,32 +842,33 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                             console.print(f"\n[bold red]Error: Ollama model {model_name} returned empty response.[/bold red]")
                             continue
                         
-                        # Make a non-streaming call to get final metrics
-                        response = ollama_client.chat(
-                            model=model_name,
-                            messages=messages,
-                            options=options if options else None,
-                        )
-                        
-                        # Create response object
-                        benchmark_response = OllamaResponse(
-                            model=model_name,
-                            message=Message(
-                                role="assistant",
-                                content=content
-                            ),
-                            done=True,
-                            total_duration=getattr(response, 'total_duration', 0),
-                            load_duration=getattr(response, 'load_duration', 0),
-                            prompt_eval_count=getattr(response, 'prompt_eval_count', 0),
-                            prompt_eval_duration=getattr(response, 'prompt_eval_duration', 0),
-                            eval_count=getattr(response, 'eval_count', 0),
-                            eval_duration=getattr(response, 'eval_duration', 0)
-                        )
+                        # Use metrics from the final streaming chunk
+                        if final_chunk:
+                            benchmark_response = OllamaResponse.from_chat_response(final_chunk)
+                            # Replace the content with our accumulated streaming content
+                            benchmark_response.message.content = content
+                        else:
+                            # Fallback to calculated metrics if no final chunk
+                            end_time = time.time()
+                            total_time_sec = end_time - start_time
+                            generation_time_sec = end_time - first_token_time if first_token_time else total_time_sec
+                            estimated_tokens = int(word_count * 1.33)
+                            
+                            benchmark_response = OllamaResponse(
+                                model=model_name,
+                                message=Message(role="assistant", content=content),
+                                done=True,
+                                total_duration=int(total_time_sec * 1_000_000_000),
+                                load_duration=0,
+                                prompt_eval_count=0,
+                                prompt_eval_duration=0,
+                                eval_count=estimated_tokens,
+                                eval_duration=int(generation_time_sec * 1_000_000_000)
+                            )
                         
                         responses.append(benchmark_response)
                         
-                        # Update final stats
+                        # Update final stats with real Ollama metrics
                         stats_data["prompt_processing"] = benchmark_response.prompt_eval_count / nanosec_to_sec(benchmark_response.prompt_eval_duration) if benchmark_response.prompt_eval_duration > 0 else 0
                         stats_data["generation_speed"] = benchmark_response.eval_count / nanosec_to_sec(benchmark_response.eval_duration) if benchmark_response.eval_duration > 0 else 0
                         stats_data["combined_speed"] = (benchmark_response.prompt_eval_count + benchmark_response.eval_count) / nanosec_to_sec(benchmark_response.prompt_eval_duration + benchmark_response.eval_duration) if (benchmark_response.prompt_eval_duration + benchmark_response.eval_duration) > 0 else 0
