@@ -929,10 +929,14 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         stats_data["generation_time"] = nanosec_to_sec(benchmark_response.eval_duration)
                         stats_data["total_time"] = nanosec_to_sec(benchmark_response.total_duration)
                         
+                        # Add performance metrics to status messages
+                        metrics_line = f"Prompt Evaluation Rate (T/s): {stats_data['prompt_processing']:.2f} - Evaluation Rate (T/s): {stats_data['generation_speed']:.2f} - Total Rate (T/s): {stats_data['combined_speed']:.2f} - Load Time (s): {stats_data['load_time']:.2f}"
+                        status_messages.append(metrics_line)
+                        
                         layout["stats"].update(Panel(
                             create_stats_table(**stats_data),
-                            title="[bold green]Statistics (Final)[/bold green]",
-                            border_style="green"
+                            title="[bold cyan]Statistics[/bold cyan]",
+                            border_style="cyan"
                         ))
                         layout["ollama_ps"].update(Panel(
                             create_ollama_ps_table(),
@@ -944,8 +948,6 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                             title="[bold cyan]Status[/bold cyan]",
                             border_style="cyan"
                         ))
-                        
-                        time.sleep(2.0)  # Hold final view
                         
                     except Exception as e:
                         console.print(f"\n[bold red]Error benchmarking {model_name}: {str(e)}[/bold red]")
