@@ -588,6 +588,8 @@ def create_ollama_ps_table() -> Table:
             if models:
                 for model_info in models:
                     model_name = model_info.get('name', 'unknown')
+                    # Truncate model name to 15 characters
+                    display_name = model_name[:15] + "..." if len(model_name) > 15 else model_name
                     size = model_info.get('size', 0)
                     size_vram = model_info.get('size_vram', 0)
                     
@@ -626,7 +628,7 @@ def create_ollama_ps_table() -> Table:
                         until = "∞"
                     
                     table.add_row(
-                        model_name,
+                        display_name,
                         f"{size_gb:.2f} GB",
                         f"{vram_gb:.2f} GB",
                         processor,
@@ -717,7 +719,15 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                     header.append(f"{run_number + 1}/{args.runs}", style="white")
                     header.append(" - ", style="white")
                     header.append(f"Prompt {prompt_idx + 1}/{len(args.prompts)}: ", style="cyan")
-                    header.append(f"{prompt}\n\n", style="white")
+                    # Show all prompts with current one highlighted
+                    for idx, p in enumerate(args.prompts):
+                        if idx == prompt_idx:
+                            header.append(f'"{p}"', style="green")
+                        else:
+                            header.append(f'"{p}"', style="white")
+                        if idx < len(args.prompts) - 1:
+                            header.append(" ", style="white")
+                    header.append("\n\n", style="white")
                     header.append("Response:\n", style="cyan")
                     layout["output"].update(Panel(
                         header,
@@ -784,7 +794,15 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                                 output_content.append(f"{run_number + 1}/{args.runs}", style="white")
                                 output_content.append(" - ", style="white")
                                 output_content.append(f"Prompt {prompt_idx + 1}/{len(args.prompts)}: ", style="cyan")
-                                output_content.append(f"{prompt}\n\n", style="white")
+                                # Show all prompts with current one highlighted
+                                for idx, p in enumerate(args.prompts):
+                                    if idx == prompt_idx:
+                                        output_content.append(f'"{p}"', style="green")
+                                    else:
+                                        output_content.append(f'"{p}"', style="white")
+                                    if idx < len(args.prompts) - 1:
+                                        output_content.append(" ", style="white")
+                                output_content.append("\n\n", style="white")
                                 output_content.append("Response:\n", style="cyan")
                                 output_content.append(display_text)
                                 
