@@ -349,16 +349,16 @@ def table_stats(benchmarks: Dict[str, List[List[OllamaResponse]]], runs: int) ->
     table = Table(title="[bold magenta]Benchmark Results[/bold magenta]", show_header=True, header_style="bold cyan")
     
     table.add_column("Model\nName", style="cyan", no_wrap=True)
-    table.add_column("Run", style="white")
+    table.add_column("Run", style="yellow")
     table.add_column("Prompt\nEvaluation Rate\n(T/s)", style="magenta", justify="right")
     table.add_column("Evaluation\nRate\n(T/s)", style="green", justify="right")
     table.add_column("Total\nRate\n(T/s)", style="magenta", justify="right")
-    table.add_column("Load Time\n(s)", style="cyan", justify="right")
+    table.add_column("Load Time\n(s)", style="white", justify="right")
     table.add_column("Prompt\nEvaluation Count", style="white", justify="right")
-    table.add_column("Prompt\nEvaluation Time\n(s)", style="cyan", justify="right")
+    table.add_column("Prompt\nEvaluation Time\n(s)", style="white", justify="right")
     table.add_column("Evaluation\nCount", style="white", justify="right")
     table.add_column("Evaluation\nTime\n(s)", style="cyan", justify="right")
-    table.add_column("Total Time\n(s)", style="cyan", justify="right")
+    table.add_column("Total Time\n(s)", style="white", justify="right")
     
     for model_name, all_runs in benchmarks.items():
         # Show each individual run
@@ -381,7 +381,7 @@ def table_stats(benchmarks: Dict[str, List[List[OllamaResponse]]], runs: int) ->
 
             run_label = f"Run {run_idx}" if runs > 1 else ""
             table.add_row(
-                f"[cyan]{model_name}[/cyan]",
+                model_name,
                 run_label,
                 f"{prompt_ts:.2f}",
                 f"{response_ts:.2f}",
@@ -413,8 +413,8 @@ def table_stats(benchmarks: Dict[str, List[List[OllamaResponse]]], runs: int) ->
                 total_ts = (prompt_eval_count + eval_count) / nanosec_to_sec(prompt_eval_duration + eval_duration) if (prompt_eval_duration + eval_duration) > 0 else 0
 
                 table.add_row(
-                    f"[cyan]{model_name}[/cyan]",
-                    "[yellow]Average[/yellow]",
+                    model_name,
+                    "[bold yellow]Average[/bold yellow]",
                     f"{prompt_ts:.2f}",
                     f"{response_ts:.2f}",
                     f"{total_ts:.2f}",
