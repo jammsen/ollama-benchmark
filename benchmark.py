@@ -703,6 +703,12 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                 max_lines_to_show = 50  # Keep last 50 lines visible
                 
                 with Live(layout, console=console, refresh_per_second=10, screen=True) as live:
+                    # Calculate progress percentage
+                    total_tests = len(model_names) * args.runs * len(args.prompts)
+                    current_model_idx = model_names.index(model_name)
+                    tests_completed = (current_model_idx * args.runs * len(args.prompts)) + (run_number * len(args.prompts)) + prompt_idx
+                    progress_percent = int((tests_completed / total_tests) * 100) if total_tests > 0 else 0
+                    
                     # Show initial state
                     header = Text()
                     header.append("Benchmarking: ", style="cyan")
@@ -715,6 +721,9 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         if idx < len(model_names) - 1:
                             header.append(", ", style="white")
                     header.append("\n", style="white")
+                    header.append(f"Status: ", style="cyan")
+                    header.append(f"{progress_percent}%", style="white")
+                    header.append(" - ", style="white")
                     header.append(f"Run: ", style="cyan")
                     header.append(f"{run_number + 1}/{args.runs}", style="white")
                     header.append(" - ", style="white")
@@ -795,6 +804,12 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                                 else:
                                     display_text = streamed_text
                                 
+                                # Calculate progress percentage
+                                total_tests = len(model_names) * args.runs * len(args.prompts)
+                                current_model_idx = model_names.index(model_name)
+                                tests_completed = (current_model_idx * args.runs * len(args.prompts)) + (run_number * len(args.prompts)) + prompt_idx
+                                progress_percent = int((tests_completed / total_tests) * 100) if total_tests > 0 else 0
+                                
                                 output_content = Text()
                                 output_content.append("Benchmarking: ", style="cyan")
                                 # Show all models with current one highlighted
@@ -806,6 +821,9 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                                     if idx < len(model_names) - 1:
                                         output_content.append(", ", style="white")
                                 output_content.append("\n", style="white")
+                                output_content.append(f"Status: ", style="cyan")
+                                output_content.append(f"{progress_percent}%", style="white")
+                                output_content.append(" - ", style="white")
                                 output_content.append(f"Run: ", style="cyan")
                                 output_content.append(f"{run_number + 1}/{args.runs}", style="white")
                                 output_content.append(" - ", style="white")
