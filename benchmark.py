@@ -704,9 +704,18 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                     # Show initial state
                     header = Text()
                     header.append("Benchmarking: ", style="cyan")
-                    header.append(f"{model_name}\n", style="white")
+                    # Show all models with current one highlighted
+                    for idx, m in enumerate(model_names):
+                        if m == model_name:
+                            header.append(f"{m}", style="green")
+                        else:
+                            header.append(f"{m}", style="white")
+                        if idx < len(model_names) - 1:
+                            header.append(", ", style="white")
+                    header.append("\n", style="white")
                     header.append(f"Run: ", style="cyan")
-                    header.append(f"{run_number + 1}/{args.runs}\n", style="white")
+                    header.append(f"{run_number + 1}/{args.runs}", style="white")
+                    header.append(" - ", style="white")
                     header.append(f"Prompt {prompt_idx + 1}/{len(args.prompts)}: ", style="cyan")
                     header.append(f"{prompt}\n\n", style="white")
                     header.append("Response:\n", style="cyan")
@@ -762,12 +771,22 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                                 
                                 output_content = Text()
                                 output_content.append("Benchmarking: ", style="cyan")
-                                output_content.append(f"{model_name}\n", style="white")
+                                # Show all models with current one highlighted
+                                for idx, m in enumerate(model_names):
+                                    if m == model_name:
+                                        output_content.append(f"{m}", style="green")
+                                    else:
+                                        output_content.append(f"{m}", style="white")
+                                    if idx < len(model_names) - 1:
+                                        output_content.append(", ", style="white")
+                                output_content.append("\n", style="white")
                                 output_content.append(f"Run: ", style="cyan")
-                                output_content.append(f"{run_number + 1}/{args.runs}\n", style="white")
+                                output_content.append(f"{run_number + 1}/{args.runs}", style="white")
+                                output_content.append(" - ", style="white")
                                 output_content.append(f"Prompt {prompt_idx + 1}/{len(args.prompts)}: ", style="cyan")
                                 output_content.append(f"{prompt}\n\n", style="white")
                                 output_content.append("Response:\n", style="cyan")
+                                output_content.append(display_text)
                                 output_content.append(display_text)
                                 
                                 layout["output"].update(Panel(
