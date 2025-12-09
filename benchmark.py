@@ -661,6 +661,25 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
     status_messages: List[str] = []  # Collect status messages for display
     last_stats_data: Optional[Dict] = None  # Store last completed stats
     
+    # Unload all models at start and add to status messages
+    try:
+        ps_info = ollama_client.ps()
+        if ps_info and 'models' in ps_info:
+            loaded_models = ps_info['models']
+            if loaded_models:
+                status_messages.append(f"Unloading {len(loaded_models)} model(s) from memory...")
+                for model_info in loaded_models:
+                    model_name_unload = model_info.get('name', '')
+                    if model_name_unload:
+                        try:
+                            ollama_client.generate(model=model_name_unload, prompt="", keep_alive=0)
+                            status_messages.append(f"✓ Unloaded {model_name_unload}")
+                        except Exception as e:
+                            status_messages.append(f"Warning: Could not unload {model_name_unload}: {e}")
+                status_messages.append("All models unloaded, ready to start benchmark")
+    except Exception as e:
+        status_messages.append(f"Warning: Could not check/unload models: {e}")
+    
     for model_name in model_names:
         all_runs: List[List[OllamaResponse]] = []
         
