@@ -274,7 +274,7 @@ def average_stats_multi_run(model_name: str, all_runs: List[List[OllamaResponse]
         print("No stats to display")
         return
 
-    print(f"\\n{'='*60}")
+    print(f"\n{'='*60}")
     print(f"Results for model: {model_name}")
     print(f"{'='*60}")
 
@@ -284,7 +284,7 @@ def average_stats_multi_run(model_name: str, all_runs: List[List[OllamaResponse]
             continue
             
         if runs > 1:
-            print(f"\\n--- Run {run_idx}/{runs} ---")
+            print(f"\n--- Run {run_idx}/{runs} ---")
         
         # Calculate aggregate metrics for this run
         res = OllamaResponse(
@@ -306,7 +306,7 @@ def average_stats_multi_run(model_name: str, all_runs: List[List[OllamaResponse]
 
     # Show average across all runs
     if runs > 1:
-        print(f"\\n--- Average across {runs} runs ---")
+        print(f"\n--- Average across {runs} runs ---")
         all_responses = [resp for run in all_runs for resp in run]
         num_runs = len(all_runs)
         
@@ -465,7 +465,7 @@ def get_benchmark_models(test_models: List[str] = []) -> List[str]:
     if not model_names:
         raise RuntimeError("No valid models found for benchmarking")
 
-    print(f"Evaluating models: {model_names}\\n")
+    print(f"Evaluating models: {model_names}\n")
     return model_names
 
 
@@ -860,12 +860,15 @@ def main() -> None:
     else:  # args.layout == 'plain'
         benchmarks = run_benchmark_plain(model_names, args)
 
+    # Display final results (table or detailed stats)
     if args.table:
         table_stats(benchmarks, args.runs)
     else:
-        # Calculate and display average statistics
-        for model_name, all_runs in benchmarks.items():
-            average_stats_multi_run(model_name, all_runs, args.runs)
+        # Calculate and display average statistics for plain mode
+        # Rich mode already showed stats during execution, so only show for plain
+        if args.layout == 'plain':
+            for model_name, all_runs in benchmarks.items():
+                average_stats_multi_run(model_name, all_runs, args.runs)
 
 
 if __name__ == "__main__":
