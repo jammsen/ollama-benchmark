@@ -762,8 +762,10 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         title="[bold cyan]Ollama PS[/bold cyan]",
                         border_style="cyan"
                     ))
+                    # Create status display with mixed text objects and strings
+                    status_display = Group(*[msg if isinstance(msg, Text) else Text(str(msg)) for msg in status_messages[-20:]]) if status_messages else "Waiting for status updates..."
                     layout["status"].update(Panel(
-                        "\n".join(status_messages[-20:]) if status_messages else "Waiting for status updates...",
+                        status_display,
                         title="[bold cyan]Status[/bold cyan]",
                         border_style="cyan"
                     ))
@@ -779,8 +781,9 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         # Only show loading message for the first prompt (model actually loads then)
                         if prompt_idx == 0:
                             status_messages.append(f"Loading model {model_name}...")
+                            status_display = Group(*[msg if isinstance(msg, Text) else Text(str(msg)) for msg in status_messages[-20:]]) if status_messages else "No status updates"
                             layout["status"].update(Panel(
-                                "\n".join(status_messages[-20:]) if status_messages else "No status updates",
+                                status_display,
                                 title="[bold cyan]Status[/bold cyan]",
                                 border_style="cyan"
                             ))
@@ -793,8 +796,9 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         if prompt_idx == 0:
                             status_messages.append("✓ Model loaded")
                         status_messages.append("Starting chat stream...")
+                        status_display = Group(*[msg if isinstance(msg, Text) else Text(str(msg)) for msg in status_messages[-20:]]) if status_messages else "No status updates"
                         layout["status"].update(Panel(
-                            "\n".join(status_messages[-20:]) if status_messages else "No status updates",
+                            status_display,
                             title="[bold cyan]Status[/bold cyan]",
                             border_style="cyan"
                         ))
@@ -896,8 +900,9 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                                         title="[bold cyan]Ollama PS[/bold cyan]",
                                         border_style="cyan"
                                     ))
+                                    status_display = Group(*[msg if isinstance(msg, Text) else Text(str(msg)) for msg in status_messages[-20:]]) if status_messages else "No status updates"
                                     layout["status"].update(Panel(
-                                        "\n".join(status_messages[-20:]) if status_messages else "No status updates",
+                                        status_display,
                                         title="[bold cyan]Status[/bold cyan]",
                                         border_style="cyan"
                                     ))
