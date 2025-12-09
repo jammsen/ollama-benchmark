@@ -602,25 +602,31 @@ def create_ollama_ps_table() -> Table:
                     # Get context size using show() API which has full model details
                     context_size = "N/A"
                     try:
+                        import re
                         show_info = ollama_client.show(model_name)
-                        if 'model_info' in show_info:
+                        
+                        # Check in modelfile first (most reliable)
+                        if 'modelfile' in show_info:
+                            modelfile = show_info['modelfile']
+                            # Try to find num_ctx parameter (case-insensitive)
+                            match = re.search(r'(?i)PARAMETER\s+num_ctx\s+(\d+)', modelfile)
+                            if match:
+                                context_size = match.group(1)
+                        
+                        # If not found, try model_info
+                        if context_size == "N/A" and 'model_info' in show_info:
                             model_details = show_info['model_info']
-                            # Look for num_ctx in various locations
-                            for key in ['num_ctx', 'context_length']:
+                            for key in ['num_ctx', 'context_length', 'context_size']:
                                 if key in model_details:
                                     context_size = str(model_details[key])
                                     break
                         
-                        # Also check in modelfile or parameters
-                        if context_size == "N/A" and 'modelfile' in show_info:
-                            # Parse modelfile for PARAMETER num_ctx
-                            modelfile = show_info['modelfile']
-                            if 'PARAMETER num_ctx' in modelfile:
-                                import re
-                                match = re.search(r'PARAMETER num_ctx (\d+)', modelfile)
-                                if match:
-                                    context_size = match.group(1)
-                    except:
+                        # Try parameters dict
+                        if context_size == "N/A" and 'parameters' in show_info:
+                            params = show_info['parameters']
+                            if 'num_ctx' in params:
+                                context_size = str(params['num_ctx'])
+                    except Exception as e:
                         # If show() fails, fallback to N/A
                         pass
                     
