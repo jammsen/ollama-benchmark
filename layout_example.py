@@ -72,7 +72,7 @@ def simulate_streaming_with_stats():
     # Initialize response text collector
     streamed_text = Text()
     
-    with Live(layout, console=console, refresh_per_second=10) as live:
+    with Live(layout, console=console, refresh_per_second=4, screen=False) as live:
         # Show initial state
         layout["output"].update(Panel(
             Text(f"Benchmarking: {model_name}\nPrompt: {prompt}\n\nResponse:\n", style="bold blue"),
