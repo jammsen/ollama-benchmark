@@ -566,41 +566,15 @@ def main() -> None:
                 print(f"\n{'='*60}\nRun {run_number + 1}/{args.runs} for model: {model_name}\n{'='*60}")
             
             responses: List[OllamaResponse] = []
-            for prompt_idx, prompt in enumerate(args.prompts, 1):
+            for prompt in args.prompts:
                 if args.verbose:
-                    print(f"\n\n[Prompt {prompt_idx}/{len(args.prompts)}] Benchmarking: {model_name}")
-                    print(f"Prompt: {prompt}\n")
+                    print(f"\n\nBenchmarking: {model_name}\nPrompt: {prompt}")
 
                 if response := run_benchmark(model_name, prompt, verbose=args.verbose, num_gpu=args.num_gpu):
                     responses.append(response)
                     if args.verbose:
-                        # Just add a newline after streaming response, don't print stats yet
-                        print()
-            
-            # Show statistics summary after all prompts in this run are complete
-            if args.verbose and responses:
-                print(f"\n{'─'*60}")
-                print(f"Run {run_number + 1} Summary for {model_name}")
-                print(f"{'─'*60}")
-                # Calculate aggregate metrics for this run
-                total_duration = sum(r.total_duration for r in responses)
-                load_duration = sum(r.load_duration for r in responses)
-                prompt_eval_count = sum(r.prompt_eval_count for r in responses)
-                prompt_eval_duration = sum(r.prompt_eval_duration for r in responses)
-                eval_count = sum(r.eval_count for r in responses)
-                eval_duration = sum(r.eval_duration for r in responses)
-                
-                # Calculate tokens per second
-                prompt_ts = prompt_eval_count / nanosec_to_sec(prompt_eval_duration) if prompt_eval_duration > 0 else 0
-                response_ts = eval_count / nanosec_to_sec(eval_duration) if eval_duration > 0 else 0
-                total_ts = (prompt_eval_count + eval_count) / nanosec_to_sec(prompt_eval_duration + eval_duration) if (prompt_eval_duration + eval_duration) > 0 else 0
-                
-                print(f"  Prompts processed: {len(responses)}")
-                print(f"  Prompt Processing:  {prompt_ts:.2f} tokens/sec")
-                print(f"  Generation Speed:   {response_ts:.2f} tokens/sec")
-                print(f"  Combined Speed:     {total_ts:.2f} tokens/sec")
-                print(f"  Total Time:         {nanosec_to_sec(total_duration):.2f}s")
-                print(f"{'─'*60}")
+                        print(f"Response: {response.message.content}")
+                        inference_stats(response)
             
             all_runs.append(responses)
             
