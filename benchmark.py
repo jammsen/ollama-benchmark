@@ -577,8 +577,9 @@ def create_ollama_ps_table() -> Table:
     table = Table(show_header=True, box=None, padding=(0, 1), title="[bold]Running Models[/bold]")
     table.add_column("Model", style="cyan", no_wrap=True)
     table.add_column("Size", style="yellow", justify="right")
+    table.add_column("VRAM", style="magenta", justify="right")
     table.add_column("Processor", style="green", justify="center")
-    table.add_column("Context", style="magenta", justify="right")
+    table.add_column("Until", style="white", justify="center")
     
     try:
         ps_info = ollama_client.ps()
@@ -588,60 +589,55 @@ def create_ollama_ps_table() -> Table:
                 for model_info in models:
                     model_name = model_info.get('name', 'unknown')
                     size = model_info.get('size', 0)
-                    # Convert size to GB
+                    size_vram = model_info.get('size_vram', 0)
+                    
+                    # Convert sizes to GB
                     size_gb = size / (1024**3) if size > 0 else 0
+                    vram_gb = size_vram / (1024**3) if size_vram > 0 else 0
                     
                     # Determine processor (GPU or CPU)
-                    # Check size_vram to determine if running on GPU
-                    size_vram = model_info.get('size_vram', 0)
                     if size_vram > 0:
                         processor = "GPU"
                     else:
                         processor = "CPU"
                     
-                    # Get context size using show() API which has full model details
-                    context_size = "N/A"
-                    try:
-                        import re
-                        show_info = ollama_client.show(model_name)
-                        
-                        # Check in modelfile first (most reliable)
-                        if 'modelfile' in show_info:
-                            modelfile = show_info['modelfile']
-                            # Try to find num_ctx parameter (case-insensitive)
-                            match = re.search(r'(?i)PARAMETER\s+num_ctx\s+(\d+)', modelfile)
-                            if match:
-                                context_size = match.group(1)
-                        
-                        # If not found, try model_info
-                        if context_size == "N/A" and 'model_info' in show_info:
-                            model_details = show_info['model_info']
-                            for key in ['num_ctx', 'context_length', 'context_size']:
-                                if key in model_details:
-                                    context_size = str(model_details[key])
-                                    break
-                        
-                        # Try parameters dict
-                        if context_size == "N/A" and 'parameters' in show_info:
-                            params = show_info['parameters']
-                            if 'num_ctx' in params:
-                                context_size = str(params['num_ctx'])
-                    except Exception as e:
-                        # If show() fails, fallback to N/A
-                        pass
+                    # Get expiration time (when model will be unloaded)
+                    expires_at = model_info.get('expires_at', '')
+                    if expires_at:
+                        # Parse and format the expiration time
+                        try:
+                            from datetime import datetime
+                            exp_time = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                            now = datetime.now(exp_time.tzinfo)
+                            time_left = exp_time - now
+                            
+                            if time_left.total_seconds() > 0:
+                                minutes = int(time_left.total_seconds() / 60)
+                                if minutes > 60:
+                                    hours = minutes // 60
+                                    until = f"{hours}h"
+                                else:
+                                    until = f"{minutes}m"
+                            else:
+                                until = "expiring"
+                        except:
+                            until = "∞"
+                    else:
+                        until = "∞"
                     
                     table.add_row(
                         model_name,
                         f"{size_gb:.2f} GB",
+                        f"{vram_gb:.2f} GB",
                         processor,
-                        context_size
+                        until
                     )
             else:
-                table.add_row("[dim]No models loaded[/dim]", "", "", "")
+                table.add_row("[dim]No models loaded[/dim]", "", "", "", "")
         else:
-            table.add_row("[dim]No models loaded[/dim]", "", "", "")
+            table.add_row("[dim]No models loaded[/dim]", "", "", "", "")
     except Exception as e:
-        table.add_row(f"[red]Error: {str(e)}[/red]", "", "", "")
+        table.add_row(f"[red]Error: {str(e)}[/red]", "", "", "", "")
     
     return table
 
