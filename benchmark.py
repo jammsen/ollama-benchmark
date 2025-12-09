@@ -741,11 +741,11 @@ def run_benchmark_plain(model_names: List[str], args) -> Dict[str, List[List[Oll
             
             if should_unload:
                 try:
-                    print(f\"\\nUnloading {model_name} from memory...\")
-                    ollama_client.generate(model=model_name, prompt=\"\", keep_alive=0)
-                    print(f\"✓ {model_name} unloaded\")
+                    print(f"\nUnloading {model_name} from memory...")
+                    ollama_client.generate(model=model_name, prompt="", keep_alive=0)
+                    print(f"✓ {model_name} unloaded")
                 except Exception as e:
-                    print(f\"Note: Could not unload model: {e}\")
+                    print(f"Note: Could not unload model: {e}")
 
         benchmarks[model_name] = all_runs
     
