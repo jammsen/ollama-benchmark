@@ -426,6 +426,26 @@ def table_stats(benchmarks: Dict[str, List[List[OllamaResponse]]], runs: int) ->
                     f"[bold]{nanosec_to_sec(eval_duration):.2f}[/bold]",
                     f"[bold]{nanosec_to_sec(total_duration):.2f}[/bold]"
                 )
+                
+                # Add summary row with evaluation rates from all runs
+                eval_rates = []
+                for responses in all_runs:
+                    if responses:
+                        eval_count_run = sum(r.eval_count for r in responses)
+                        eval_duration_run = sum(r.eval_duration for r in responses)
+                        rate = eval_count_run / nanosec_to_sec(eval_duration_run) if eval_duration_run > 0 else 0
+                        eval_rates.append(f"{rate:.2f}")
+                
+                eval_rates_str = ", ".join(eval_rates)
+                avg_rate = sum(float(r) for r in eval_rates) / len(eval_rates) if eval_rates else 0
+                summary_text = f"Evaluation Rate (T/s) - {eval_rates_str} ~ {avg_rate:.2f}"
+                
+                table.add_row(
+                    f"[bold]{model_name}[/bold]",
+                    "[bold cyan]Summary[/bold cyan]",
+                    f"[dim]{summary_text}[/dim]",
+                    "", "", "", "", "", "", "", ""
+                )
 
     console.print(table)
     console.print()
