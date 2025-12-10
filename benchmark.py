@@ -719,9 +719,9 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                 
                 # Split right panel vertically into 3 equal parts (33% each)
                 layout["right_panel"].split_column(
-                    Layout(name="stats", ratio=1),
                     Layout(name="ollama_ps", ratio=1),
-                    Layout(name="status", ratio=1)
+                    Layout(name="status", ratio=1),
+                    Layout(name="stats", ratio=1)
                 )
                 
                 # Initialize stats data
