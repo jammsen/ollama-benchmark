@@ -767,13 +767,13 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                     if last_stats_data:
                         layout["stats"].update(Panel(
                             create_stats_table(**last_stats_data),
-                            title="[bold green]Last Statistics[/bold green]",
+                            title="[bold green]Last run statistics[/bold green]",
                             border_style="green"
                         ))
                     else:
                         layout["stats"].update(Panel(
                             "[dim]Waiting for first benchmark completion...[/dim]",
-                            title="[bold cyan]Last Statistics[/bold cyan]",
+                            title="[bold cyan]Last run statistics[/bold cyan]",
                             border_style="cyan"
                         ))
                     layout["ollama_ps"].update(Panel(
@@ -905,13 +905,13 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                                     if last_stats_data:
                                         layout["stats"].update(Panel(
                                             create_stats_table(**last_stats_data),
-                                            title="[bold green]Last Statistics[/bold green]",
+                                            title="[bold green]Last run statistics[/bold green]",
                                             border_style="green"
                                         ))
                                     else:
                                         layout["stats"].update(Panel(
                                             "[dim]Waiting for first benchmark completion...[/dim]",
-                                            title="[bold cyan]Last Statistics[/bold cyan]",
+                                            title="[bold cyan]Last run statistics[/bold cyan]",
                                             border_style="cyan"
                                         ))
                                     layout["ollama_ps"].update(Panel(
@@ -994,7 +994,7 @@ def run_benchmark_with_rich_layout(model_names: List[str], args) -> Dict[str, Li
                         
                         layout["stats"].update(Panel(
                             create_stats_table(**last_stats_data),
-                            title="[bold green]Last Statistics[/bold green]",
+                            title="[bold green]Last run statistics[/bold green]",
                             border_style="green"
                         ))
                         layout["ollama_ps"].update(Panel(
