@@ -102,18 +102,23 @@ Follow these instructions to set up and run benchmarks on your system.
    ./benchmark.py --verbose --models deepseek-r1:70b --prompts "Write a hello world program" "Explain quantum computing"
    ```
 
-   Very big multi model, verbose, table and medium architecture prompt option:
+   Many fast multi model, verbose, runs 3, table and medium architecture prompt option:
 
    ```bash
    ./benchmark.py -v -m llama3.2:1b qwen3:4b hf.co/lmstudio-community/Qwen3-4B-Thinking-2507-GGUF:Q4_K_M mistral:7b-instruct-v0.3-q4_K_M llama3.1:8b-instruct-q4_K_M qwen2.5:14b-instruct-q4_K_M hf.co/lmstudio-community/Qwen2.5-14B-Instruct-1M-GGUF:Q4_K_M gpt-oss:20b gpt-oss:120b --prompts "Design a scalable web application architecture for an e-commerce platform that needs to handle 10,000 concurrent users during peak shopping periods. Your architecture should include a detailed database design with proper normalization, effective caching strategies using Redis or Memcached, load balancers, CDN integration, payment processing systems, inventory management, user authentication and authorization, session management, and monitoring tools. Explain the key components, their interactions, data flow between services, and how the system maintains performance and reliability under high traffic loads while ensuring secure transactions." -t
    ```
 
-   Very heavy/dense multi model, verbose, table and short programming prompt option:
+   Few heavy/dense multi model, verbose, runs 3, table and short programming prompt option:
 
    ```bash
    ./benchmark.py -v -m llama3.3:70b-instruct-q4_K_M llama4:17b-scout-16e-instruct-q4_K_M --prompts "Fix this bug: if x = 5 print(x." -t
    ```
 
+   Many fast and also heavy/dense multi model, verbose, runs 3, table and short programming prompt option:
+
+   ```bash
+   ./benchmark.py -v -m llama3.2:1b qwen3:4b hf.co/lmstudio-community/Qwen3-4B-Thinking-2507-GGUF:Q4_K_M mistral:7b-instruct-v0.3-q4_K_M llama3.1:8b-instruct-q4_K_M qwen2.5:14b-instruct-q4_K_M hf.co/lmstudio-community/Qwen2.5-14B-Instruct-1M-GGUF:Q4_K_M gpt-oss:20b llama3.3:70b-instruct-q4_K_M gpt-oss:120b llama4:17b-scout-16e-instruct-q4_K_M --prompts "Fix this bug: if x = 5 print(x." -t
+   ```
 
 
 ### Command Line Options
